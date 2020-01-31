@@ -1,9 +1,9 @@
 package lexer
 
 import (
-	"../dfastate"
-	"../token"
 	"fmt"
+	"learn-compile/craft/dfastate"
+	"learn-compile/craft/token"
 )
 
 type SimpleToken struct {
@@ -21,7 +21,7 @@ func (token SimpleToken) GetText() string {
 
 type SimpleTokenReader struct {
 	tokens []token.Token
-	pos int
+	pos    int
 }
 
 func (reader *SimpleTokenReader) Read() token.Token {
@@ -62,8 +62,8 @@ func NewSimpleTokenReader(tokens []token.Token) *SimpleTokenReader {
 
 type SimpleLexer struct {
 	tokenText string // 临时保存token的文本
-	tokens []token.Token
-	token SimpleToken
+	tokens    []token.Token
+	token     SimpleToken
 }
 
 func (lexer *SimpleLexer) isAlpha(ch string) bool {
@@ -105,6 +105,27 @@ func (lexer *SimpleLexer) initToken(ch string) dfastate.DfaState {
 	} else if ch == "=" {
 		newState = dfastate.Assignment
 		lexer.token._type = token.Assignment
+	} else if ch == "+" {
+		newState = dfastate.Plus
+		lexer.token._type = token.Plus
+	} else if ch == "-" {
+		newState = dfastate.Minus
+		lexer.token._type = token.Minus
+	} else if ch == "*" {
+		newState = dfastate.Star
+		lexer.token._type = token.Star
+	} else if ch == "/" {
+		newState = dfastate.Slash
+		lexer.token._type = token.Slash
+	} else if ch == ";" {
+		newState = dfastate.SemiColon
+		lexer.token._type = token.SemiColon
+	} else if ch == "(" {
+		newState = dfastate.LeftParen
+		lexer.token._type = token.LeftParen
+	} else if ch == ")" {
+		newState = dfastate.RightParen
+		lexer.token._type = token.RightParen
 	}
 	if newState != dfastate.Initial {
 		lexer.tokenText += ch
@@ -113,6 +134,10 @@ func (lexer *SimpleLexer) initToken(ch string) dfastate.DfaState {
 }
 
 func (lexer *SimpleLexer) Tokenize(code string) *SimpleTokenReader {
+	lexer.tokenText = ""
+	lexer.token = SimpleToken{text: ""}
+	lexer.tokens = nil
+
 	state := dfastate.Initial
 	for _, ascii := range code {
 		ch := string(ascii)
@@ -163,7 +188,8 @@ func (lexer *SimpleLexer) Tokenize(code string) *SimpleTokenReader {
 				state = dfastate.Id
 				lexer.tokenText += ch
 			}
-		case dfastate.Assignment:
+		case dfastate.Plus, dfastate.Minus, dfastate.Star, dfastate.Slash, dfastate.Assignment,
+			dfastate.LeftParen, dfastate.RightParen, dfastate.SemiColon:
 			state = lexer.initToken(ch)
 		case dfastate.IntLiteral:
 			if lexer.isDigit(ch) {
@@ -184,9 +210,12 @@ func (lexer *SimpleLexer) Tokenize(code string) *SimpleTokenReader {
 
 func (lexer *SimpleLexer) Dump(reader *SimpleTokenReader) {
 	fmt.Println("type\ttext")
-	var token token.Token
-	for token = reader.Read(); token != nil; token = reader.Read() {
-		fmt.Println(string(token.GetType())+"\t"+token.GetText())
+	for {
+		token := reader.Read()
+		if token == nil {
+			break
+		}
+		fmt.Println(string(token.GetType()) + "\t" + token.GetText())
 	}
 }
 

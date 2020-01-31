@@ -13,4 +13,13 @@ const (
 	GT
 	GE
 	Assignment // = 赋值
+
+	Plus  // +
+	Minus // -
+	Star  // *
+	Slash // /
+
+	SemiColon  // ;
+	LeftParen  // (
+	RightParen // )
 )
