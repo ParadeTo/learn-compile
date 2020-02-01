@@ -13,6 +13,11 @@ type TestDataIntDeclare struct {
 	expected []*SimpleASTNode
 }
 
+type TestDataEvaluate struct {
+	script   string
+	expected int
+}
+
 func TestSimpleCalculator_IntDeclare(t *testing.T) {
 	lexer := lexer.NewSimpleLexer()
 	calc := NewSimpleCalculator()
@@ -46,39 +51,29 @@ func TestSimpleCalculator_IntDeclare(t *testing.T) {
 	}
 }
 
-func TestSimpleCalculator_Additive(t *testing.T) {
-	lexer := lexer.NewSimpleLexer()
+func TestSimpleCalculator_Evaluate(t *testing.T) {
 	calc := NewSimpleCalculator()
-	testData := []TestDataIntDeclare{
+	testData := []TestDataEvaluate{
 		{
-			script: "45 + 46 * 10",
-			expected: []*SimpleASTNode{
-				{nodeType: ast.Additive, text: "+"},
-				{nodeType: ast.IntLiteral, text: "45"},
-				{nodeType: ast.Multiplicative, text: "*"},
-				{nodeType: ast.IntLiteral, text: "46"},
-				{nodeType: ast.IntLiteral, text: "10"},
-			},
+			script:   "4 + 6 * 10",
+			expected: 64,
 		},
 		{
-			script: "(45 + 46) * 10",
-			expected: []*SimpleASTNode{
-				{nodeType: ast.Multiplicative, text: "*"},
-				{nodeType: ast.Additive, text: "+"},
-				{nodeType: ast.IntLiteral, text: "45"},
-				{nodeType: ast.IntLiteral, text: "46"},
-				{nodeType: ast.IntLiteral, text: "10"},
-			},
+			script:   "(4 + 6) * 10",
+			expected: 100,
+		},
+		{
+			script:   "4 +",
+			expected: 0,
 		},
 	}
 	for _, data := range testData {
 		Convey(fmt.Sprintf("%s", data.script), t, func() {
-			reader := lexer.Tokenize(data.script)
-			_, node := calc.Additive(reader)
-			nodes := calc.PreTraverse(node)
-			for i, node := range nodes {
-				So(node.GetType(), ShouldEqual, data.expected[i].GetType())
-				So(node.GetText(), ShouldEqual, data.expected[i].GetText())
+			error, result := calc.Evaluate(data.script)
+			if error != nil {
+				So(error, ShouldBeError)
+			} else {
+				So(result, ShouldEqual, data.expected)
 			}
 		})
 	}

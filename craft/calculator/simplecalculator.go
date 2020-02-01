@@ -1,9 +1,12 @@
 package calculator
 
 import (
+	"fmt"
 	"github.com/kataras/iris/core/errors"
 	"learn-compile/craft/ast"
+	"learn-compile/craft/lexer"
 	"learn-compile/craft/token"
+	"strconv"
 )
 
 type SimpleASTNode struct {
@@ -158,6 +161,69 @@ func (calc SimpleCalculator) IntDeclare(reader token.TokenReader) (error, *Simpl
 		}
 	}
 	return nil, node
+}
+
+func (calc SimpleCalculator) Prog(reader token.TokenReader) (error, *SimpleASTNode) {
+	node := NewSimpleASTNode(ast.Programm, "Calculator")
+	error, child := calc.Additive(reader)
+	if child != nil {
+		node.AddChild(child)
+	}
+	return error, node
+}
+
+func (calc SimpleCalculator) parse(script string) (error, *SimpleASTNode) {
+	lexer := lexer.NewSimpleLexer()
+	reader := lexer.Tokenize(script)
+	return calc.Prog(reader)
+}
+
+func (calc SimpleCalculator) Evaluate(script string) (error, int) {
+	error, tree := calc.parse(script)
+	if error != nil {
+		return error, 0
+	}
+	return error, calc.evaluate(tree, "")
+}
+
+/**
+ * 求值，并打印求值过程
+ */
+func (calc SimpleCalculator) evaluate(node ast.ASTNode, indent string) int {
+	result := 0
+	fmt.Println(indent + "Calculating: " + string(node.GetType()))
+	switch node.GetType() {
+	case ast.Programm:
+		for _, child := range node.GetChildren() {
+			result = calc.evaluate(child, indent+"--")
+		}
+	case ast.Additive:
+		children := node.GetChildren()
+		child1 := children[0]
+		value1 := calc.evaluate(child1, indent+"--")
+		child2 := children[1]
+		value2 := calc.evaluate(child2, indent+"--")
+		if node.GetText() == "+" {
+			result = value1 + value2
+		} else {
+			result = value1 - value2
+		}
+	case ast.Multiplicative:
+		children := node.GetChildren()
+		child1 := children[0]
+		value1 := calc.evaluate(child1, indent+"--")
+		child2 := children[1]
+		value2 := calc.evaluate(child2, indent+"--")
+		if node.GetText() == "*" {
+			result = value1 * value2
+		} else {
+			result = value1 / value2
+		}
+	case ast.IntLiteral:
+		result, _ = strconv.Atoi(node.GetText())
+	}
+	fmt.Printf(indent+"Result: %d\n", result)
+	return result
 }
 
 // 前序遍历
