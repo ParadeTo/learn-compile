@@ -2,7 +2,7 @@ package lexer
 
 import (
 	"fmt"
-	"github.com/smartystreets/goconvey/convey"
+	. "github.com/smartystreets/goconvey/convey"
 	"learn-compile/craft/token"
 	"testing"
 )
@@ -42,7 +42,7 @@ func TestSimpleLexer_Tokenize(t *testing.T) {
 				{_type: token.Identifier, text: "age"},
 				{_type: token.Assignment, text: "="},
 				{_type: token.IntLiteral, text: "45"},
-				{ _type: token.SemiColon, text: ";" },
+				{_type: token.SemiColon, text: ";"},
 			},
 		},
 		{
@@ -51,7 +51,7 @@ func TestSimpleLexer_Tokenize(t *testing.T) {
 				{_type: token.Identifier, text: "age"},
 				{_type: token.GE, text: ">="},
 				{_type: token.IntLiteral, text: "45"},
-				{ _type: token.SemiColon, text: ";" },
+				{_type: token.SemiColon, text: ";"},
 			},
 		},
 		{
@@ -60,7 +60,7 @@ func TestSimpleLexer_Tokenize(t *testing.T) {
 				{_type: token.Identifier, text: "age"},
 				{_type: token.GT, text: ">"},
 				{_type: token.IntLiteral, text: "45"},
-				{ _type: token.SemiColon, text: ";" },
+				{_type: token.SemiColon, text: ";"},
 			},
 		},
 		{
@@ -81,7 +81,7 @@ func TestSimpleLexer_Tokenize(t *testing.T) {
 		},
 	}
 	for _, data := range testData {
-		convey.Convey(fmt.Sprintf("%s", data.script), t, func() {
+		Convey(fmt.Sprintf("%s", data.script), t, func() {
 			reader := lexer.Tokenize(data.script)
 			pos := 0
 			for {
@@ -89,7 +89,7 @@ func TestSimpleLexer_Tokenize(t *testing.T) {
 				if token == nil {
 					break
 				}
-				convey.So(string(token.GetType()), convey.ShouldEqual, data.expected[pos].GetType())
+				So(string(token.GetType()), ShouldEqual, data.expected[pos].GetType())
 				pos++
 			}
 		})
