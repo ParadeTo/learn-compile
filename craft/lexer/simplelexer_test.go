@@ -9,7 +9,7 @@ import (
 
 type TestDataTokenize struct {
 	script   string
-	expected []SimpleToken
+	expected []token.SimpleToken
 }
 
 func TestSimpleLexer_Tokenize(t *testing.T) {
@@ -17,66 +17,66 @@ func TestSimpleLexer_Tokenize(t *testing.T) {
 	testData := []TestDataTokenize{
 		{
 			script: "int age = 45;",
-			expected: []SimpleToken{
-				{_type: token.Int, text: "int"},
-				{_type: token.Identifier, text: "age"},
-				{_type: token.Assignment, text: "="},
-				{_type: token.IntLiteral, text: "45"},
-				{_type: token.SemiColon, text: ";"},
+			expected: []token.SimpleToken{
+				{Type: token.Int, Text: "int"},
+				{Type: token.Identifier, Text: "age"},
+				{Type: token.Assignment, Text: "="},
+				{Type: token.IntLiteral, Text: "45"},
+				{Type: token.SemiColon, Text: ";"},
 			},
 		},
 		{
 			script: "inta age = 45;",
-			expected: []SimpleToken{
-				{_type: token.Identifier, text: "inta"},
-				{_type: token.Identifier, text: "age"},
-				{_type: token.Assignment, text: "="},
-				{_type: token.IntLiteral, text: "45"},
-				{_type: token.SemiColon, text: ";"},
+			expected: []token.SimpleToken{
+				{Type: token.Identifier, Text: "inta"},
+				{Type: token.Identifier, Text: "age"},
+				{Type: token.Assignment, Text: "="},
+				{Type: token.IntLiteral, Text: "45"},
+				{Type: token.SemiColon, Text: ";"},
 			},
 		},
 		{
 			script: "in age = 45;",
-			expected: []SimpleToken{
-				{_type: token.Identifier, text: "in"},
-				{_type: token.Identifier, text: "age"},
-				{_type: token.Assignment, text: "="},
-				{_type: token.IntLiteral, text: "45"},
-				{_type: token.SemiColon, text: ";"},
+			expected: []token.SimpleToken{
+				{Type: token.Identifier, Text: "in"},
+				{Type: token.Identifier, Text: "age"},
+				{Type: token.Assignment, Text: "="},
+				{Type: token.IntLiteral, Text: "45"},
+				{Type: token.SemiColon, Text: ";"},
 			},
 		},
 		{
 			script: "age >= 45;",
-			expected: []SimpleToken{
-				{_type: token.Identifier, text: "age"},
-				{_type: token.GE, text: ">="},
-				{_type: token.IntLiteral, text: "45"},
-				{_type: token.SemiColon, text: ";"},
+			expected: []token.SimpleToken{
+				{Type: token.Identifier, Text: "age"},
+				{Type: token.GE, Text: ">="},
+				{Type: token.IntLiteral, Text: "45"},
+				{Type: token.SemiColon, Text: ";"},
 			},
 		},
 		{
 			script: "age > 45;",
-			expected: []SimpleToken{
-				{_type: token.Identifier, text: "age"},
-				{_type: token.GT, text: ">"},
-				{_type: token.IntLiteral, text: "45"},
-				{_type: token.SemiColon, text: ";"},
+			expected: []token.SimpleToken{
+				{Type: token.Identifier, Text: "age"},
+				{Type: token.GT, Text: ">"},
+				{Type: token.IntLiteral, Text: "45"},
+				{Type: token.SemiColon, Text: ";"},
 			},
 		},
 		{
 			script: "(1 + 2) * 4 / 5 - 6",
-			expected: []SimpleToken{
-				{_type: token.LeftParen, text: "("},
-				{_type: token.IntLiteral, text: "1"},
-				{_type: token.Plus, text: "+"},
-				{_type: token.IntLiteral, text: "2"},
-				{_type: token.RightParen, text: ")"},
-				{_type: token.Star, text: "*"},
-				{_type: token.IntLiteral, text: "4"},
-				{_type: token.Slash, text: "/"},
-				{_type: token.IntLiteral, text: "5"},
-				{_type: token.Minus, text: "-"},
-				{_type: token.IntLiteral, text: "6"},
+			expected: []token.SimpleToken{
+				{Type: token.LeftParen, Text: "("},
+				{Type: token.IntLiteral, Text: "1"},
+				{Type: token.Plus, Text: "+"},
+				{Type: token.IntLiteral, Text: "2"},
+				{Type: token.RightParen, Text: ")"},
+				{Type: token.Star, Text: "*"},
+				{Type: token.IntLiteral, Text: "4"},
+				{Type: token.Slash, Text: "/"},
+				{Type: token.IntLiteral, Text: "5"},
+				{Type: token.Minus, Text: "-"},
+				{Type: token.IntLiteral, Text: "6"},
 			},
 		},
 	}

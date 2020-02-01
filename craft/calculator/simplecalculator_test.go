@@ -6,18 +6,19 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"learn-compile/craft/ast"
 	"learn-compile/craft/lexer"
+	"learn-compile/craft/tools"
 	"testing"
 )
 
 type TestDataIntDeclare struct {
 	script   string
-	expected []*SimpleASTNode
+	expected []*ast.SimpleASTNode
 }
 
 type TestDataEvaluate struct {
 	script   string
 	expected int
-	error error
+	error    error
 }
 
 func TestSimpleCalculator_IntDeclare(t *testing.T) {
@@ -26,17 +27,17 @@ func TestSimpleCalculator_IntDeclare(t *testing.T) {
 	testData := []TestDataIntDeclare{
 		{
 			script: "int age;",
-			expected: []*SimpleASTNode{
-				{nodeType: ast.IntDeclaration, text: "age"},
+			expected: []*ast.SimpleASTNode{
+				{NodeType: ast.IntDeclaration, Text: "age"},
 			},
 		},
 		{
 			script: "int age = 45 + 46;",
-			expected: []*SimpleASTNode{
-				{nodeType: ast.IntDeclaration, text: "age"},
-				{nodeType: ast.Additive, text: "+"},
-				{nodeType: ast.IntLiteral, text: "45"},
-				{nodeType: ast.IntLiteral, text: "46"},
+			expected: []*ast.SimpleASTNode{
+				{NodeType: ast.IntDeclaration, Text: "age"},
+				{NodeType: ast.Additive, Text: "+"},
+				{NodeType: ast.IntLiteral, Text: "45"},
+				{NodeType: ast.IntLiteral, Text: "46"},
 			},
 		},
 	}
@@ -44,7 +45,7 @@ func TestSimpleCalculator_IntDeclare(t *testing.T) {
 		Convey(fmt.Sprintf("%s", data.script), t, func() {
 			reader := lexer.Tokenize(data.script)
 			_, node := calc.IntDeclare(reader)
-			nodes := calc.PreTraverse(node)
+			nodes := tools.PreTraverse(node)
 			for i, node := range nodes {
 				So(node.GetType(), ShouldEqual, data.expected[i].GetType())
 				So(node.GetText(), ShouldEqual, data.expected[i].GetText())
@@ -75,7 +76,7 @@ func TestSimpleCalculator_Evaluate(t *testing.T) {
 		{
 			script:   "4 +",
 			expected: 0,
-			error: errors.New(""),
+			error:    errors.New(""),
 		},
 	}
 	for _, data := range testData {

@@ -28,3 +28,44 @@ type TokenReader interface {
 	 */
 	SetPosition(pos int)
 }
+
+type SimpleTokenReader struct {
+	tokens []Token
+	pos    int
+}
+
+func (reader *SimpleTokenReader) Read() Token {
+	if reader.pos < len(reader.tokens) {
+		p := reader.pos
+		reader.pos++
+		return reader.tokens[p]
+	}
+	return nil
+}
+
+func (reader *SimpleTokenReader) Peek() Token {
+	if reader.pos < len(reader.tokens) {
+		return reader.tokens[reader.pos]
+	}
+	return nil
+}
+
+func (reader *SimpleTokenReader) UnRead() {
+	if reader.pos > 0 {
+		reader.pos--
+	}
+}
+
+func (reader *SimpleTokenReader) GetPosition() int {
+	return reader.pos
+}
+
+func (reader *SimpleTokenReader) SetPosition(pos int) {
+	if pos >= 0 && pos < len(reader.tokens) {
+		reader.pos = pos
+	}
+}
+
+func NewSimpleTokenReader(tokens []Token) *SimpleTokenReader {
+	return &SimpleTokenReader{tokens: tokens, pos: 0}
+}
