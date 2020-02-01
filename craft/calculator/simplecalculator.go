@@ -45,23 +45,52 @@ type SimpleCalculator struct {
 }
 
 /**
- * 加/减法表达式
+ * 加/减法表达式，为了解决左递归无限循环的问题，这里的表达式写成了右递归，造成的问题是计算是又结合的
  * Additive: Multiplicative | Multiplicative Plus/Minus Additive
+ */
+//func (calc SimpleCalculator) Additive(reader token.TokenReader) (error, *SimpleASTNode) {
+//	_, child1 := calc.Multiplicative(reader)
+//	node := child1
+//	_token := reader.Peek()
+//	if child1 != nil && _token != nil {
+//		if _token.GetType() == token.Plus || _token.GetType() == token.Minus {
+//			_token = reader.Read() // 读取运算符
+//			_, child2 := calc.Additive(reader)
+//			if child2 != nil {
+//				node = NewSimpleASTNode(ast.Additive, _token.GetText())
+//				node.AddChild(child1)
+//				node.AddChild(child2)
+//			} else {
+//				return errors.New("invalid additive expression, expecting the right part"), nil
+//			}
+//		}
+//	}
+//	return nil, node
+//}
+
+/**
+ * 加/减法表达式，左结合
+ * Additive: Multiplicative (Plus/Minus Multiplicative)*
  */
 func (calc SimpleCalculator) Additive(reader token.TokenReader) (error, *SimpleASTNode) {
 	_, child1 := calc.Multiplicative(reader)
 	node := child1
-	_token := reader.Peek()
-	if child1 != nil && _token != nil {
-		if _token.GetType() == token.Plus || _token.GetType() == token.Minus {
-			_token = reader.Read() // 读取运算符
-			_, child2 := calc.Additive(reader)
-			if child2 != nil {
-				node = NewSimpleASTNode(ast.Additive, _token.GetText())
-				node.AddChild(child1)
-				node.AddChild(child2)
+	if child1 != nil {
+		for {
+			_token := reader.Peek()
+			if _token != nil && (_token.GetType() == token.Plus || _token.GetType() == token.Minus) {
+				_token = reader.Read()
+				_, child2 := calc.Multiplicative(reader)
+				if child2 != nil {
+					node = NewSimpleASTNode(ast.Additive, _token.GetText())
+					node.AddChild(child1)
+					node.AddChild(child2)
+					child1 = node
+				} else {
+					return errors.New("invalid additive expression, expecting the right part"), nil
+				}
 			} else {
-				return errors.New("invalid additive expression, expecting the right part"), nil
+				break
 			}
 		}
 	}
@@ -73,20 +102,49 @@ func (calc SimpleCalculator) Additive(reader token.TokenReader) (error, *SimpleA
  * Multiplicative: Primary | Multiplicative Star/Slash Primary // 这样会陷入死循环
  * Multiplicative: Primary | Primary Star/Slash Multiplicative
  */
+//func (calc SimpleCalculator) Multiplicative(reader token.TokenReader) (error, *SimpleASTNode) {
+//	_, child1 := calc.Primary(reader)
+//	node := child1
+//	_token := reader.Peek()
+//	if child1 != nil && _token != nil {
+//		if _token.GetType() == token.Star || _token.GetType() == token.Slash {
+//			_token = reader.Read() // 读取运算符
+//			_, child2 := calc.Multiplicative(reader)
+//			if child2 != nil {
+//				node = NewSimpleASTNode(ast.Multiplicative, _token.GetText())
+//				node.AddChild(child1)
+//				node.AddChild(child2)
+//			} else {
+//				return errors.New("invalid multiplicative expression, expecting the right part"), nil
+//			}
+//		}
+//	}
+//	return nil, node
+//}
+
+/**
+ * 乘/除法表达式，左结合版
+ * Multiplicative: Primary (Star/Slash Primary)*
+ */
 func (calc SimpleCalculator) Multiplicative(reader token.TokenReader) (error, *SimpleASTNode) {
 	_, child1 := calc.Primary(reader)
 	node := child1
-	_token := reader.Peek()
-	if child1 != nil && _token != nil {
-		if _token.GetType() == token.Star || _token.GetType() == token.Slash {
-			_token = reader.Read() // 读取运算符
-			_, child2 := calc.Multiplicative(reader)
-			if child2 != nil {
-				node = NewSimpleASTNode(ast.Multiplicative, _token.GetText())
-				node.AddChild(child1)
-				node.AddChild(child2)
+	if child1 != nil {
+		for {
+			_token := reader.Peek()
+			if _token != nil && (_token.GetType() == token.Star || _token.GetType() == token.Slash) {
+				_token = reader.Read()
+				_, child2 := calc.Primary(reader)
+				if child2 != nil {
+					node = NewSimpleASTNode(ast.Multiplicative, _token.GetText())
+					node.AddChild(child1)
+					node.AddChild(child2)
+					child1 = node
+				} else {
+					return errors.New("invalid multiplicative expression, expecting the right part"), nil
+				}
 			} else {
-				return errors.New("invalid multiplicative expression, expecting the right part"), nil
+				break
 			}
 		}
 	}

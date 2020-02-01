@@ -2,6 +2,7 @@ package calculator
 
 import (
 	"fmt"
+	"github.com/kataras/iris/core/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"learn-compile/craft/ast"
 	"learn-compile/craft/lexer"
@@ -16,6 +17,7 @@ type TestDataIntDeclare struct {
 type TestDataEvaluate struct {
 	script   string
 	expected int
+	error error
 }
 
 func TestSimpleCalculator_IntDeclare(t *testing.T) {
@@ -55,6 +57,14 @@ func TestSimpleCalculator_Evaluate(t *testing.T) {
 	calc := NewSimpleCalculator()
 	testData := []TestDataEvaluate{
 		{
+			script:   "2 * 3 * 4",
+			expected: 24,
+		},
+		{
+			script:   "4 + 6 + 10",
+			expected: 20,
+		},
+		{
 			script:   "4 + 6 * 10",
 			expected: 64,
 		},
@@ -65,12 +75,13 @@ func TestSimpleCalculator_Evaluate(t *testing.T) {
 		{
 			script:   "4 +",
 			expected: 0,
+			error: errors.New(""),
 		},
 	}
 	for _, data := range testData {
 		Convey(fmt.Sprintf("%s", data.script), t, func() {
 			error, result := calc.Evaluate(data.script)
-			if error != nil {
+			if data.error != nil {
 				So(error, ShouldBeError)
 			} else {
 				So(result, ShouldEqual, data.expected)
