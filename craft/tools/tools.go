@@ -2,6 +2,8 @@ package tools
 
 import "learn-compile/craft/ast"
 
+const INDENT = "\t"
+
 // 前序遍历
 func PreTraverse(node *ast.SimpleASTNode) []*ast.SimpleASTNode {
 	var nodes []*ast.SimpleASTNode

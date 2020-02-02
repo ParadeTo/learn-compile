@@ -2,9 +2,11 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"learn-compile/craft/ast"
 	"learn-compile/craft/lexer"
 	"learn-compile/craft/token"
+	"learn-compile/craft/tools"
 )
 
 /**
@@ -28,7 +30,7 @@ type SimpleParser struct {
  * Additive: Multiplicative (Plus/Minus Multiplicative)*
  */
 func (parser SimpleParser) Additive(reader token.TokenReader) (error, *ast.SimpleASTNode) {
-	_, child1 := parser.Multiplicative(reader)
+	err, child1 := parser.Multiplicative(reader)
 	node := child1
 	if child1 != nil {
 		for {
@@ -49,7 +51,7 @@ func (parser SimpleParser) Additive(reader token.TokenReader) (error, *ast.Simpl
 			}
 		}
 	}
-	return nil, node
+	return err, node
 }
 
 /**
@@ -57,7 +59,7 @@ func (parser SimpleParser) Additive(reader token.TokenReader) (error, *ast.Simpl
  * Multiplicative: Primary (Star/Slash Primary)*
  */
 func (parser SimpleParser) Multiplicative(reader token.TokenReader) (error, *ast.SimpleASTNode) {
-	_, child1 := parser.Primary(reader)
+	err, child1 := parser.Primary(reader)
 	node := child1
 	if child1 != nil {
 		for {
@@ -78,7 +80,7 @@ func (parser SimpleParser) Multiplicative(reader token.TokenReader) (error, *ast
 			}
 		}
 	}
-	return nil, node
+	return err, node
 }
 
 /**
@@ -201,34 +203,46 @@ func (parser SimpleParser) AssignmentStatement(reader token.TokenReader) (error,
 
 func (parser SimpleParser) Prog(reader token.TokenReader) (error, *ast.SimpleASTNode) {
 	node := ast.NewSimpleASTNode(ast.Programm, "pwc")
-
+	var err error
+	var child *ast.SimpleASTNode
 	for {
 		if reader.Peek() == nil {
 			break
 		}
 
-		_, child := parser.IntDeclare(reader)
+		err, child = parser.IntDeclare(reader)
 		if child == nil {
-			_, child = parser.ExpressionStatement(reader)
+			err, child = parser.ExpressionStatement(reader)
 		}
 		if child == nil {
-			_, child = parser.AssignmentStatement(reader)
+			err, child = parser.AssignmentStatement(reader)
 		}
 
-		if child != nil {
-			node.AddChild(child)
+		if err != nil {
+			return err, nil
 		} else {
-			return errors.New("unknown statement"), nil
+			if child != nil {
+				node.AddChild(child)
+			} else {
+				return errors.New("unknown statement"), nil
+			}
 		}
 	}
 
-	return nil, node
+	return err, node
 }
 
 func (parser SimpleParser) Parse(script string) (error, *ast.SimpleASTNode) {
 	lexer := lexer.NewSimpleLexer()
 	reader := lexer.Tokenize(script)
 	return parser.Prog(reader)
+}
+
+func (parser SimpleParser) DumpAST(node ast.ASTNode, indent string) {
+	fmt.Println(indent + string(node.GetType()) + " " + node.GetText())
+	for _, child := range node.GetChildren() {
+		parser.DumpAST(child, indent+tools.INDENT)
+	}
 }
 
 func NewSimpleParser() *SimpleParser {
