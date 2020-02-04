@@ -1,11 +1,11 @@
-// Code generated from PlayScript.g4 by ANTLR 4.8. DO NOT EDIT.
+// Code generated from Calc.g4 by ANTLR 4.8. DO NOT EDIT.
 
-package parser // PlayScript
+package parser // Calc
 
 import "github.com/antlr/antlr4/runtime/Go/antlr"
 
-// PlayScriptListener is a complete listener for a parse tree produced by PlayScriptParser.
-type PlayScriptListener interface {
+// CalcListener is a complete listener for a parse tree produced by CalcParser.
+type CalcListener interface {
 	antlr.ParseTreeListener
 
 	// EnterStart is called when entering the start production.

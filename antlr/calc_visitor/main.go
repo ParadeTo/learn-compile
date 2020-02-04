@@ -9,7 +9,7 @@ import (
 
 // visitor 模式
 type playVisitor struct {
-	parser.BasePlayScriptVisitor
+	parser.BaseCalcVisitor
 }
 
 func (v *playVisitor) VisitStart(ctx *parser.StartContext) interface{} {
@@ -55,7 +55,7 @@ func (v *playVisitor) VisitPrimaryExpression(ctx *parser.PrimaryExpressionContex
 func main() {
 	is := antlr.NewInputStream("1+3*4")
 
-	lexer := parser.NewPlayScriptLexer(is)
+	lexer := parser.NewCalcLexer(is)
 	//for {
 	//	t := lexer.NextToken()
 	//	if t.GetTokenType() == antlr.TokenEOF {
@@ -65,7 +65,7 @@ func main() {
 	//		lexer.SymbolicNames[t.GetTokenType()], t.GetText())
 	//}
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
-	p := parser.NewPlayScriptParser(stream)
+	p := parser.NewCalcParser(stream)
 	tree := p.Start()
 	v := &playVisitor{}
 	fmt.Println(tree.Accept(v))

@@ -1,6 +1,6 @@
-// Code generated from PlayScript.g4 by ANTLR 4.8. DO NOT EDIT.
+// Code generated from Calc.g4 by ANTLR 4.8. DO NOT EDIT.
 
-package parser // PlayScript
+package parser // Calc
 
 import (
 	"fmt"
@@ -55,12 +55,12 @@ func init() {
 	}
 }
 
-type PlayScriptParser struct {
+type CalcParser struct {
 	*antlr.BaseParser
 }
 
-func NewPlayScriptParser(input antlr.TokenStream) *PlayScriptParser {
-	this := new(PlayScriptParser)
+func NewCalcParser(input antlr.TokenStream) *CalcParser {
+	this := new(CalcParser)
 
 	this.BaseParser = antlr.NewBaseParser(input)
 
@@ -68,28 +68,28 @@ func NewPlayScriptParser(input antlr.TokenStream) *PlayScriptParser {
 	this.RuleNames = ruleNames
 	this.LiteralNames = literalNames
 	this.SymbolicNames = symbolicNames
-	this.GrammarFileName = "PlayScript.g4"
+	this.GrammarFileName = "Calc.g4"
 
 	return this
 }
 
-// PlayScriptParser tokens.
+// CalcParser tokens.
 const (
-	PlayScriptParserEOF        = antlr.TokenEOF
-	PlayScriptParserMUL        = 1
-	PlayScriptParserDIV        = 2
-	PlayScriptParserADD        = 3
-	PlayScriptParserSUB        = 4
-	PlayScriptParserNUMBER     = 5
-	PlayScriptParserWHITESPACE = 6
+	CalcParserEOF        = antlr.TokenEOF
+	CalcParserMUL        = 1
+	CalcParserDIV        = 2
+	CalcParserADD        = 3
+	CalcParserSUB        = 4
+	CalcParserNUMBER     = 5
+	CalcParserWHITESPACE = 6
 )
 
-// PlayScriptParser rules.
+// CalcParser rules.
 const (
-	PlayScriptParserRULE_start                    = 0
-	PlayScriptParserRULE_additiveExpression       = 1
-	PlayScriptParserRULE_multiplicativeExpression = 2
-	PlayScriptParserRULE_primaryExpression        = 3
+	CalcParserRULE_start                    = 0
+	CalcParserRULE_additiveExpression       = 1
+	CalcParserRULE_multiplicativeExpression = 2
+	CalcParserRULE_primaryExpression        = 3
 )
 
 // IStartContext is an interface to support dynamic dispatch.
@@ -111,7 +111,7 @@ type StartContext struct {
 func NewEmptyStartContext() *StartContext {
 	var p = new(StartContext)
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = PlayScriptParserRULE_start
+	p.RuleIndex = CalcParserRULE_start
 	return p
 }
 
@@ -123,7 +123,7 @@ func NewStartContext(parser antlr.Parser, parent antlr.ParserRuleContext, invoki
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
 
 	p.parser = parser
-	p.RuleIndex = PlayScriptParserRULE_start
+	p.RuleIndex = CalcParserRULE_start
 
 	return p
 }
@@ -141,7 +141,7 @@ func (s *StartContext) AdditiveExpression() IAdditiveExpressionContext {
 }
 
 func (s *StartContext) EOF() antlr.TerminalNode {
-	return s.GetToken(PlayScriptParserEOF, 0)
+	return s.GetToken(CalcParserEOF, 0)
 }
 
 func (s *StartContext) GetRuleContext() antlr.RuleContext {
@@ -153,20 +153,20 @@ func (s *StartContext) ToStringTree(ruleNames []string, recog antlr.Recognizer) 
 }
 
 func (s *StartContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.EnterStart(s)
 	}
 }
 
 func (s *StartContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.ExitStart(s)
 	}
 }
 
 func (s *StartContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 	switch t := visitor.(type) {
-	case PlayScriptVisitor:
+	case CalcVisitor:
 		return t.VisitStart(s)
 
 	default:
@@ -174,9 +174,9 @@ func (s *StartContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 	}
 }
 
-func (p *PlayScriptParser) Start() (localctx IStartContext) {
+func (p *CalcParser) Start() (localctx IStartContext) {
 	localctx = NewStartContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 0, PlayScriptParserRULE_start)
+	p.EnterRule(localctx, 0, CalcParserRULE_start)
 
 	defer func() {
 		p.ExitRule()
@@ -201,7 +201,7 @@ func (p *PlayScriptParser) Start() (localctx IStartContext) {
 	}
 	{
 		p.SetState(9)
-		p.Match(PlayScriptParserEOF)
+		p.Match(CalcParserEOF)
 	}
 
 	return localctx
@@ -226,7 +226,7 @@ type AdditiveExpressionContext struct {
 func NewEmptyAdditiveExpressionContext() *AdditiveExpressionContext {
 	var p = new(AdditiveExpressionContext)
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = PlayScriptParserRULE_additiveExpression
+	p.RuleIndex = CalcParserRULE_additiveExpression
 	return p
 }
 
@@ -238,7 +238,7 @@ func NewAdditiveExpressionContext(parser antlr.Parser, parent antlr.ParserRuleCo
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
 
 	p.parser = parser
-	p.RuleIndex = PlayScriptParserRULE_additiveExpression
+	p.RuleIndex = CalcParserRULE_additiveExpression
 
 	return p
 }
@@ -266,11 +266,11 @@ func (s *AdditiveExpressionContext) AdditiveExpression() IAdditiveExpressionCont
 }
 
 func (s *AdditiveExpressionContext) ADD() antlr.TerminalNode {
-	return s.GetToken(PlayScriptParserADD, 0)
+	return s.GetToken(CalcParserADD, 0)
 }
 
 func (s *AdditiveExpressionContext) SUB() antlr.TerminalNode {
-	return s.GetToken(PlayScriptParserSUB, 0)
+	return s.GetToken(CalcParserSUB, 0)
 }
 
 func (s *AdditiveExpressionContext) GetRuleContext() antlr.RuleContext {
@@ -282,20 +282,20 @@ func (s *AdditiveExpressionContext) ToStringTree(ruleNames []string, recog antlr
 }
 
 func (s *AdditiveExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.EnterAdditiveExpression(s)
 	}
 }
 
 func (s *AdditiveExpressionContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.ExitAdditiveExpression(s)
 	}
 }
 
 func (s *AdditiveExpressionContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 	switch t := visitor.(type) {
-	case PlayScriptVisitor:
+	case CalcVisitor:
 		return t.VisitAdditiveExpression(s)
 
 	default:
@@ -303,18 +303,18 @@ func (s *AdditiveExpressionContext) Accept(visitor antlr.ParseTreeVisitor) inter
 	}
 }
 
-func (p *PlayScriptParser) AdditiveExpression() (localctx IAdditiveExpressionContext) {
+func (p *CalcParser) AdditiveExpression() (localctx IAdditiveExpressionContext) {
 	return p.additiveExpression(0)
 }
 
-func (p *PlayScriptParser) additiveExpression(_p int) (localctx IAdditiveExpressionContext) {
+func (p *CalcParser) additiveExpression(_p int) (localctx IAdditiveExpressionContext) {
 	var _parentctx antlr.ParserRuleContext = p.GetParserRuleContext()
 	_parentState := p.GetState()
 	localctx = NewAdditiveExpressionContext(p, p.GetParserRuleContext(), _parentState)
 	var _prevctx IAdditiveExpressionContext = localctx
 	var _ antlr.ParserRuleContext = _prevctx // TODO: To prevent unused variable warning.
 	_startState := 2
-	p.EnterRecursionRule(localctx, 2, PlayScriptParserRULE_additiveExpression, _p)
+	p.EnterRecursionRule(localctx, 2, CalcParserRULE_additiveExpression, _p)
 
 	defer func() {
 		p.UnrollRecursionContexts(_parentctx)
@@ -356,7 +356,7 @@ func (p *PlayScriptParser) additiveExpression(_p int) (localctx IAdditiveExpress
 			switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 0, p.GetParserRuleContext()) {
 			case 1:
 				localctx = NewAdditiveExpressionContext(p, _parentctx, _parentState)
-				p.PushNewRecursionContext(localctx, _startState, PlayScriptParserRULE_additiveExpression)
+				p.PushNewRecursionContext(localctx, _startState, CalcParserRULE_additiveExpression)
 				p.SetState(14)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 2)) {
@@ -364,7 +364,7 @@ func (p *PlayScriptParser) additiveExpression(_p int) (localctx IAdditiveExpress
 				}
 				{
 					p.SetState(15)
-					p.Match(PlayScriptParserADD)
+					p.Match(CalcParserADD)
 				}
 				{
 					p.SetState(16)
@@ -373,7 +373,7 @@ func (p *PlayScriptParser) additiveExpression(_p int) (localctx IAdditiveExpress
 
 			case 2:
 				localctx = NewAdditiveExpressionContext(p, _parentctx, _parentState)
-				p.PushNewRecursionContext(localctx, _startState, PlayScriptParserRULE_additiveExpression)
+				p.PushNewRecursionContext(localctx, _startState, CalcParserRULE_additiveExpression)
 				p.SetState(17)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 1)) {
@@ -381,7 +381,7 @@ func (p *PlayScriptParser) additiveExpression(_p int) (localctx IAdditiveExpress
 				}
 				{
 					p.SetState(18)
-					p.Match(PlayScriptParserSUB)
+					p.Match(CalcParserSUB)
 				}
 				{
 					p.SetState(19)
@@ -418,7 +418,7 @@ type MultiplicativeExpressionContext struct {
 func NewEmptyMultiplicativeExpressionContext() *MultiplicativeExpressionContext {
 	var p = new(MultiplicativeExpressionContext)
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = PlayScriptParserRULE_multiplicativeExpression
+	p.RuleIndex = CalcParserRULE_multiplicativeExpression
 	return p
 }
 
@@ -430,7 +430,7 @@ func NewMultiplicativeExpressionContext(parser antlr.Parser, parent antlr.Parser
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
 
 	p.parser = parser
-	p.RuleIndex = PlayScriptParserRULE_multiplicativeExpression
+	p.RuleIndex = CalcParserRULE_multiplicativeExpression
 
 	return p
 }
@@ -458,11 +458,11 @@ func (s *MultiplicativeExpressionContext) MultiplicativeExpression() IMultiplica
 }
 
 func (s *MultiplicativeExpressionContext) MUL() antlr.TerminalNode {
-	return s.GetToken(PlayScriptParserMUL, 0)
+	return s.GetToken(CalcParserMUL, 0)
 }
 
 func (s *MultiplicativeExpressionContext) DIV() antlr.TerminalNode {
-	return s.GetToken(PlayScriptParserDIV, 0)
+	return s.GetToken(CalcParserDIV, 0)
 }
 
 func (s *MultiplicativeExpressionContext) GetRuleContext() antlr.RuleContext {
@@ -474,20 +474,20 @@ func (s *MultiplicativeExpressionContext) ToStringTree(ruleNames []string, recog
 }
 
 func (s *MultiplicativeExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.EnterMultiplicativeExpression(s)
 	}
 }
 
 func (s *MultiplicativeExpressionContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.ExitMultiplicativeExpression(s)
 	}
 }
 
 func (s *MultiplicativeExpressionContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 	switch t := visitor.(type) {
-	case PlayScriptVisitor:
+	case CalcVisitor:
 		return t.VisitMultiplicativeExpression(s)
 
 	default:
@@ -495,18 +495,18 @@ func (s *MultiplicativeExpressionContext) Accept(visitor antlr.ParseTreeVisitor)
 	}
 }
 
-func (p *PlayScriptParser) MultiplicativeExpression() (localctx IMultiplicativeExpressionContext) {
+func (p *CalcParser) MultiplicativeExpression() (localctx IMultiplicativeExpressionContext) {
 	return p.multiplicativeExpression(0)
 }
 
-func (p *PlayScriptParser) multiplicativeExpression(_p int) (localctx IMultiplicativeExpressionContext) {
+func (p *CalcParser) multiplicativeExpression(_p int) (localctx IMultiplicativeExpressionContext) {
 	var _parentctx antlr.ParserRuleContext = p.GetParserRuleContext()
 	_parentState := p.GetState()
 	localctx = NewMultiplicativeExpressionContext(p, p.GetParserRuleContext(), _parentState)
 	var _prevctx IMultiplicativeExpressionContext = localctx
 	var _ antlr.ParserRuleContext = _prevctx // TODO: To prevent unused variable warning.
 	_startState := 4
-	p.EnterRecursionRule(localctx, 4, PlayScriptParserRULE_multiplicativeExpression, _p)
+	p.EnterRecursionRule(localctx, 4, CalcParserRULE_multiplicativeExpression, _p)
 
 	defer func() {
 		p.UnrollRecursionContexts(_parentctx)
@@ -548,7 +548,7 @@ func (p *PlayScriptParser) multiplicativeExpression(_p int) (localctx IMultiplic
 			switch p.GetInterpreter().AdaptivePredict(p.GetTokenStream(), 2, p.GetParserRuleContext()) {
 			case 1:
 				localctx = NewMultiplicativeExpressionContext(p, _parentctx, _parentState)
-				p.PushNewRecursionContext(localctx, _startState, PlayScriptParserRULE_multiplicativeExpression)
+				p.PushNewRecursionContext(localctx, _startState, CalcParserRULE_multiplicativeExpression)
 				p.SetState(28)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 2)) {
@@ -556,7 +556,7 @@ func (p *PlayScriptParser) multiplicativeExpression(_p int) (localctx IMultiplic
 				}
 				{
 					p.SetState(29)
-					p.Match(PlayScriptParserMUL)
+					p.Match(CalcParserMUL)
 				}
 				{
 					p.SetState(30)
@@ -565,7 +565,7 @@ func (p *PlayScriptParser) multiplicativeExpression(_p int) (localctx IMultiplic
 
 			case 2:
 				localctx = NewMultiplicativeExpressionContext(p, _parentctx, _parentState)
-				p.PushNewRecursionContext(localctx, _startState, PlayScriptParserRULE_multiplicativeExpression)
+				p.PushNewRecursionContext(localctx, _startState, CalcParserRULE_multiplicativeExpression)
 				p.SetState(31)
 
 				if !(p.Precpred(p.GetParserRuleContext(), 1)) {
@@ -573,7 +573,7 @@ func (p *PlayScriptParser) multiplicativeExpression(_p int) (localctx IMultiplic
 				}
 				{
 					p.SetState(32)
-					p.Match(PlayScriptParserDIV)
+					p.Match(CalcParserDIV)
 				}
 				{
 					p.SetState(33)
@@ -610,7 +610,7 @@ type PrimaryExpressionContext struct {
 func NewEmptyPrimaryExpressionContext() *PrimaryExpressionContext {
 	var p = new(PrimaryExpressionContext)
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(nil, -1)
-	p.RuleIndex = PlayScriptParserRULE_primaryExpression
+	p.RuleIndex = CalcParserRULE_primaryExpression
 	return p
 }
 
@@ -622,7 +622,7 @@ func NewPrimaryExpressionContext(parser antlr.Parser, parent antlr.ParserRuleCon
 	p.BaseParserRuleContext = antlr.NewBaseParserRuleContext(parent, invokingState)
 
 	p.parser = parser
-	p.RuleIndex = PlayScriptParserRULE_primaryExpression
+	p.RuleIndex = CalcParserRULE_primaryExpression
 
 	return p
 }
@@ -630,7 +630,7 @@ func NewPrimaryExpressionContext(parser antlr.Parser, parent antlr.ParserRuleCon
 func (s *PrimaryExpressionContext) GetParser() antlr.Parser { return s.parser }
 
 func (s *PrimaryExpressionContext) NUMBER() antlr.TerminalNode {
-	return s.GetToken(PlayScriptParserNUMBER, 0)
+	return s.GetToken(CalcParserNUMBER, 0)
 }
 
 func (s *PrimaryExpressionContext) GetRuleContext() antlr.RuleContext {
@@ -642,20 +642,20 @@ func (s *PrimaryExpressionContext) ToStringTree(ruleNames []string, recog antlr.
 }
 
 func (s *PrimaryExpressionContext) EnterRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.EnterPrimaryExpression(s)
 	}
 }
 
 func (s *PrimaryExpressionContext) ExitRule(listener antlr.ParseTreeListener) {
-	if listenerT, ok := listener.(PlayScriptListener); ok {
+	if listenerT, ok := listener.(CalcListener); ok {
 		listenerT.ExitPrimaryExpression(s)
 	}
 }
 
 func (s *PrimaryExpressionContext) Accept(visitor antlr.ParseTreeVisitor) interface{} {
 	switch t := visitor.(type) {
-	case PlayScriptVisitor:
+	case CalcVisitor:
 		return t.VisitPrimaryExpression(s)
 
 	default:
@@ -663,9 +663,9 @@ func (s *PrimaryExpressionContext) Accept(visitor antlr.ParseTreeVisitor) interf
 	}
 }
 
-func (p *PlayScriptParser) PrimaryExpression() (localctx IPrimaryExpressionContext) {
+func (p *CalcParser) PrimaryExpression() (localctx IPrimaryExpressionContext) {
 	localctx = NewPrimaryExpressionContext(p, p.GetParserRuleContext(), p.GetState())
-	p.EnterRule(localctx, 6, PlayScriptParserRULE_primaryExpression)
+	p.EnterRule(localctx, 6, CalcParserRULE_primaryExpression)
 
 	defer func() {
 		p.ExitRule()
@@ -686,13 +686,13 @@ func (p *PlayScriptParser) PrimaryExpression() (localctx IPrimaryExpressionConte
 	p.EnterOuterAlt(localctx, 1)
 	{
 		p.SetState(39)
-		p.Match(PlayScriptParserNUMBER)
+		p.Match(CalcParserNUMBER)
 	}
 
 	return localctx
 }
 
-func (p *PlayScriptParser) Sempred(localctx antlr.RuleContext, ruleIndex, predIndex int) bool {
+func (p *CalcParser) Sempred(localctx antlr.RuleContext, ruleIndex, predIndex int) bool {
 	switch ruleIndex {
 	case 1:
 		var t *AdditiveExpressionContext = nil
@@ -713,7 +713,7 @@ func (p *PlayScriptParser) Sempred(localctx antlr.RuleContext, ruleIndex, predIn
 	}
 }
 
-func (p *PlayScriptParser) AdditiveExpression_Sempred(localctx antlr.RuleContext, predIndex int) bool {
+func (p *CalcParser) AdditiveExpression_Sempred(localctx antlr.RuleContext, predIndex int) bool {
 	switch predIndex {
 	case 0:
 		return p.Precpred(p.GetParserRuleContext(), 2)
@@ -726,7 +726,7 @@ func (p *PlayScriptParser) AdditiveExpression_Sempred(localctx antlr.RuleContext
 	}
 }
 
-func (p *PlayScriptParser) MultiplicativeExpression_Sempred(localctx antlr.RuleContext, predIndex int) bool {
+func (p *CalcParser) MultiplicativeExpression_Sempred(localctx antlr.RuleContext, predIndex int) bool {
 	switch predIndex {
 	case 2:
 		return p.Precpred(p.GetParserRuleContext(), 2)

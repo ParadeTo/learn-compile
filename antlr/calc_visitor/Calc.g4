@@ -1,4 +1,4 @@
-grammar PlayScript;
+grammar Calc;
 
 MUL: '*';
 DIV: '/';

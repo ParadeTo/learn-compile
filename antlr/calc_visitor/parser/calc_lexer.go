@@ -1,4 +1,4 @@
-// Code generated from PlayScript.g4 by ANTLR 4.8. DO NOT EDIT.
+// Code generated from Calc.g4 by ANTLR 4.8. DO NOT EDIT.
 
 package parser
 
@@ -55,7 +55,7 @@ var lexerRuleNames = []string{
 	"MUL", "DIV", "ADD", "SUB", "NUMBER", "WHITESPACE",
 }
 
-type PlayScriptLexer struct {
+type CalcLexer struct {
 	*antlr.BaseLexer
 	channelNames []string
 	modeNames    []string
@@ -70,9 +70,9 @@ func init() {
 	}
 }
 
-func NewPlayScriptLexer(input antlr.CharStream) *PlayScriptLexer {
+func NewCalcLexer(input antlr.CharStream) *CalcLexer {
 
-	l := new(PlayScriptLexer)
+	l := new(CalcLexer)
 
 	l.BaseLexer = antlr.NewBaseLexer(input)
 	l.Interpreter = antlr.NewLexerATNSimulator(l, lexerAtn, lexerDecisionToDFA, antlr.NewPredictionContextCache())
@@ -82,18 +82,18 @@ func NewPlayScriptLexer(input antlr.CharStream) *PlayScriptLexer {
 	l.RuleNames = lexerRuleNames
 	l.LiteralNames = lexerLiteralNames
 	l.SymbolicNames = lexerSymbolicNames
-	l.GrammarFileName = "PlayScript.g4"
+	l.GrammarFileName = "Calc.g4"
 	// TODO: l.EOF = antlr.TokenEOF
 
 	return l
 }
 
-// PlayScriptLexer tokens.
+// CalcLexer tokens.
 const (
-	PlayScriptLexerMUL        = 1
-	PlayScriptLexerDIV        = 2
-	PlayScriptLexerADD        = 3
-	PlayScriptLexerSUB        = 4
-	PlayScriptLexerNUMBER     = 5
-	PlayScriptLexerWHITESPACE = 6
+	CalcLexerMUL        = 1
+	CalcLexerDIV        = 2
+	CalcLexerADD        = 3
+	CalcLexerSUB        = 4
+	CalcLexerNUMBER     = 5
+	CalcLexerWHITESPACE = 6
 )
