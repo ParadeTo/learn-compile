@@ -9,7 +9,7 @@ import (
 var index = 1
 
 type BlockScope struct {
-	*Scope
+	*BaseScope
 }
 
 func (b *BlockScope) ToString() string {
@@ -17,14 +17,14 @@ func (b *BlockScope) ToString() string {
 }
 
 func NewBlockScope() *BlockScope {
-	blockScope := &BlockScope{Scope: NewScope()}
+	blockScope := &BlockScope{BaseScope: NewBaseScope()}
 	blockScope.name = "block" + strconv.Itoa(index)
 	index++
 	return blockScope
 }
 
-func NewBlockScopeWithParams(enclosingScope IScope, ctx antlr.ParserRuleContext) *BlockScope {
-	blockScope := &BlockScope{Scope: NewScope()}
+func NewBlockScopeWithParams(enclosingScope Scope, ctx antlr.ParserRuleContext) *BlockScope {
+	blockScope := &BlockScope{BaseScope: NewBaseScope()}
 	blockScope.name = "block" + strconv.Itoa(index)
 	blockScope.SetEnclosingScope(enclosingScope)
 	blockScope.SetCtx(ctx)

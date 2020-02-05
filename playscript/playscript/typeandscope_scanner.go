@@ -12,10 +12,10 @@ import (
 type TypeAndScopeScanner struct {
 	*BasePlayScriptListener
 	at         *AnnotatedTree
-	scopeStack []IScope
+	scopeStack []Scope
 }
 
-func (scanner *TypeAndScopeScanner) pushScope(scope IScope, ctx antlr.ParserRuleContext) IScope {
+func (scanner *TypeAndScopeScanner) pushScope(scope Scope, ctx antlr.ParserRuleContext) Scope {
 	scanner.at.node2Scope[ctx] = scope
 	scope.SetCtx(ctx)
 	scanner.scopeStack = append(scanner.scopeStack, scope)
@@ -28,7 +28,7 @@ func (scanner *TypeAndScopeScanner) popScope() {
 }
 
 // 当前的Scope
-func (scanner *TypeAndScopeScanner) currentScope() IScope {
+func (scanner *TypeAndScopeScanner) currentScope() Scope {
 	_len := len(scanner.scopeStack)
 	if _len > 0 {
 		return scanner.scopeStack[_len-1]
@@ -86,10 +86,26 @@ func (scanner *TypeAndScopeScanner) ExitStatement(ctx *StatementContext) {
 
 // 函数
 func (scanner *TypeAndScopeScanner) EnterFunctionDeclaration(ctx *FunctionDeclarationContext) {
-	//idName := ctx.IDENTIFIER().GetText()
-	//注意：目前funtion的信息并不完整，参数要等到 TypeResolver 中去确定。
-	//Function function = new Function(idName, currentScope(), ctx);
+	idName := ctx.IDENTIFIER().GetText()
+	currentScope := scanner.currentScope()
+	//注意：目前function的信息并不完整，参数要等到 TypeResolver 中去确定
+	function := NewFunction(idName, currentScope, ctx)
+	scanner.at.AddType(function)
+	currentScope.AddSymbol(function)
+	scanner.pushScope(function, ctx)
 }
+
+func (scanner *TypeAndScopeScanner) ExitFunctionDeclaration(ctx *FunctionDeclarationContext) {
+	scanner.popScope()
+}
+
+// class
+//func (scanner *TypeAndScopeScanner) EnterClassDeclaration(ctx *ClassDeclarationContext) {
+//}
+//
+//func (scanner *TypeAndScopeScanner) ExitClassDeclaration(ctx *ClassDeclarationContext) {
+//	scanner.popScope()
+//}
 
 func NewTypeAndScopeScanner(at *AnnotatedTree) *TypeAndScopeScanner {
 	return &TypeAndScopeScanner{at: at}

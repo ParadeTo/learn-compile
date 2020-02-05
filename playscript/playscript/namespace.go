@@ -38,7 +38,7 @@ func (nameSpace *NameSpace) RemoveSubNameSpace(child *NameSpace) {
 	}
 }
 
-func NewNameSpace(name string, enclosingScope IScope, ctx antlr.ParserRuleContext) *NameSpace {
+func NewNameSpace(name string, enclosingScope Scope, ctx antlr.ParserRuleContext) *NameSpace {
 	nameSpace := &NameSpace{BlockScope: NewBlockScopeWithParams(enclosingScope, ctx)}
 	nameSpace.name = name
 	nameSpace.SetEnclosingScope(enclosingScope)

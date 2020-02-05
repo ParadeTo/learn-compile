@@ -32,6 +32,14 @@ func (compiler *PlayScriptCompiler) Compile(script string) *AnnotatedTree {
 	pass1 := NewTypeAndScopeScanner(at)
 	walker.Walk(pass1, at.ast)
 
+	//pass2：把变量、类继承、函数声明的类型都解析出来。也就是所有声明时用到类型的地方。
+	pass2 := NewTypeResolver(at)
+	walker.Walk(pass2, at.ast)
+
+	//pass3：消解有的变量应用、函数引用。另外还做了类型的推断。
+	//RefResolver pass3 = new RefResolver(at);
+	//walker.walk(pass3,at.ast);
+
 	fmt.Println(at.ast.ToStringTree([]string{}, _parser))
 	return at
 }

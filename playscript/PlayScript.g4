@@ -322,7 +322,8 @@ typeList
 typeType
     : (classOrInterfaceType| functionType | primitiveType) ('[' ']')*
     ;
-
+// function long() f
+// 声明一个 f 函数，返回 long
 functionType
     : FUNCTION typeTypeOrVoid '(' typeList? ')'
     ;
