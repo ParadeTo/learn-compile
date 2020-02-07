@@ -37,8 +37,16 @@ func (compiler *PlayScriptCompiler) Compile(script string) *AnnotatedTree {
 	walker.Walk(pass2, at.ast)
 
 	//pass3：消解有的变量应用、函数引用。另外还做了类型的推断。
-	//RefResolver pass3 = new RefResolver(at);
-	//walker.walk(pass3,at.ast);
+	pass3 := NewRefResolver(at)
+	walker.Walk(pass3, at.ast)
+
+	//pass4：类型检查
+	pass4 := NewTypeChecker(at)
+	walker.Walk(pass4, at.ast)
+
+	//pss5: 其他语义检查
+	pass5 := NewSematicValidator(at)
+	walker.Walk(pass5, at.ast)
 
 	fmt.Println(at.ast.ToStringTree([]string{}, _parser))
 	return at

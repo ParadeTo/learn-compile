@@ -7,6 +7,7 @@ type Scope interface {
 	// TODO，支持函数重载，需要传入
 	//GetFunction(name string, paramTypes []Type) *Function
 	GetFunction(name string) *Function
+	GetFunctionVariable(name string) *Variable
 	ToString() string
 }
 
@@ -36,6 +37,17 @@ func (s *BaseScope) GetFunction(name string) *Function {
 	for _, symbol := range s.symbols {
 		if function, ok := symbol.(*Function); ok && function.GetName() == name {
 			return function
+		}
+	}
+	return nil
+}
+
+func (s *BaseScope) GetFunctionVariable(name string) *Variable {
+	for _, symbol := range s.symbols {
+		if variable, ok := symbol.(*Variable); ok {
+			if _, ok := variable._type.(FunctionType); ok && variable.GetName() == name {
+				return variable
+			}
 		}
 	}
 	return nil

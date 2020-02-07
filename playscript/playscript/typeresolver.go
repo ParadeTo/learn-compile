@@ -1,7 +1,6 @@
 package playscript
 
 import (
-	"fmt"
 	. "learn-compile/playscript/parser"
 )
 
@@ -19,9 +18,11 @@ type TypeResolver struct {
 func (tr *TypeResolver) ExitVariableDeclarators(ctx *VariableDeclaratorsContext) {
 	_type := tr.at.typeOfNode[ctx.TypeType()]
 	for _, child := range ctx.AllVariableDeclarator() {
-		symbol := tr.at.symbolOfNode[child]
-		if variable, ok := symbol.(*Variable); ok {
-			variable._type = _type
+		if variableDeclaratorContext, ok := child.(*VariableDeclaratorContext); ok {
+			symbol := tr.at.symbolOfNode[variableDeclaratorContext.VariableDeclaratorId()]
+			if variable, ok := symbol.(*Variable); ok {
+				variable._type = _type
+			}
 		}
 	}
 }
@@ -35,7 +36,7 @@ func (tr *TypeResolver) EnterVariableDeclaratorId(ctx *VariableDeclaratorIdConte
 
 	// 查看变量是否已经定义过
 	if scope.GetVariable(idName) != nil {
-		// TODO 记录log
+		tr.at.LogError("Variable or parameter already Declared: "+idName, ctx)
 	}
 
 	scope.AddSymbol(variable)
@@ -55,9 +56,9 @@ func (tr *TypeResolver) ExitFunctionDeclaration(ctx *FunctionDeclarationContext)
 	// TODO，检查参数
 	parentScope := tr.at.EnclosingScopeOfNode(ctx)
 	found := parentScope.GetFunction(scope.GetName())
+	// 这里其实应该检查一下是否有重名的 variable
 	if found != nil && found != scope {
-		// TODO log
-		fmt.Println("Function or method already Declared: " + ctx.IDENTIFIER().GetText())
+		tr.at.LogError("Function or method already Declared: "+ctx.IDENTIFIER().GetText(), ctx)
 	}
 }
 

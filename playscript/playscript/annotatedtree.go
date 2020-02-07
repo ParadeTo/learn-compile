@@ -1,6 +1,10 @@
 package playscript
 
-import . "github.com/antlr/antlr4/runtime/Go/antlr"
+import (
+	"fmt"
+	. "github.com/antlr/antlr4/runtime/Go/antlr"
+	"learn-compile/playscript/parser"
+)
 
 /**
  * 注释树。
@@ -21,6 +25,23 @@ type AnnotatedTree struct {
 	typeOfNode map[Tree]Type
 	// 命名空间
 	nameSpace *NameSpace
+	// 语义分析过程中生成的信息，包括普通信息、警告和错误
+	logs []*CompilationLog
+}
+
+// 得到第一条编译错误
+func (tree *AnnotatedTree) GetFirstCompilationError() *CompilationLog {
+	for _, log := range tree.logs {
+		if log._type == CompilationLogERROR {
+			return log
+		}
+	}
+	return nil
+}
+
+// 是否有编译错误
+func (tree *AnnotatedTree) HasCompilationError() bool {
+	return tree.GetFirstCompilationError() != nil
 }
 
 // 通过名称查找Variable 逐级Scope查找
@@ -42,6 +63,14 @@ func (tree *AnnotatedTree) LookupFunction(scope Scope, idName string) *Function 
 	return function
 }
 
+func (tree *AnnotatedTree) LookupFunctionVariable(scope Scope, idName string) *Variable {
+	variable := scope.GetFunctionVariable(idName)
+	if variable == nil && scope.GetEnclosingScope() != nil {
+		variable = tree.LookupFunctionVariable(scope.GetEnclosingScope(), idName)
+	}
+	return variable
+}
+
 func (tree *AnnotatedTree) AddType(_type Type) {
 	tree.types = append(tree.types, _type)
 }
@@ -58,6 +87,36 @@ func (tree *AnnotatedTree) EnclosingScopeOfNode(node Tree) Scope {
 		}
 	}
 	return rtn
+}
+
+func (tree *AnnotatedTree) Log(message string, _type int, ctx ParserRuleContext) {
+	log := NewCompilationLog()
+	log.ctx = ctx
+	log.message = message
+	log.line = ctx.GetStart().GetLine()
+	log.positionInLine = ctx.GetStart().GetColumn()
+	log._type = _type
+	tree.logs = append(tree.logs, log)
+	fmt.Println(log.ToString())
+}
+
+func (tree *AnnotatedTree) LogError(message string, ctx ParserRuleContext) {
+	tree.Log(message, CompilationLogERROR, ctx)
+}
+
+// 包含某节点的函数
+func (tree *AnnotatedTree) EnclosingFunctionOfNode(ctx Tree) *Function {
+	if _, ok := ctx.GetParent().(parser.FunctionDeclarationContext); ok {
+		scope := tree.node2Scope[ctx]
+		if function, ok := scope.(*Function); ok {
+			return function
+		}
+		return nil
+	} else if ctx.GetParent() == nil {
+		return nil
+	} else {
+		return tree.EnclosingFunctionOfNode(ctx.GetParent())
+	}
 }
 
 func NewAnnotatedTree() *AnnotatedTree {

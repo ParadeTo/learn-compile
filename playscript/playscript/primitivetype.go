@@ -21,7 +21,7 @@ func (p *PrimitiveType) ToString() string {
 }
 
 // 计算两个类型中比较“高”的一级，比如int和long相加，要取long
-func (p *PrimitiveType) GetUpperType(type1, type2 Type) *PrimitiveType {
+func GetUpperType(type1, type2 Type) *PrimitiveType {
 	var _type *PrimitiveType
 	if type1 == String || type2 == String {
 		_type = String
@@ -41,7 +41,7 @@ func (p *PrimitiveType) GetUpperType(type1, type2 Type) *PrimitiveType {
 	return _type
 }
 
-func (p *PrimitiveType) IsNumeric(_type Type) bool {
+func IsNumeric(_type Type) bool {
 	return _type == Byte ||
 		_type == Short ||
 		_type == Integer ||

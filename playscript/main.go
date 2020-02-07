@@ -4,7 +4,8 @@ import "learn-compile/playscript/playscript"
 
 func main() {
 	compiler := playscript.NewPlayScriptCompiler()
-	compiler.Compile("int foo(int a){return a+a;} int foo(){}")
+	at := compiler.Compile("int foo(int a){ int a=1; int b=a;}")
+
 	//scope := playscript.NewBaseScope()
 	//variable := playscript.NewVariable("a", nil, nil)
 	//scope.AddSymbol(variable)
