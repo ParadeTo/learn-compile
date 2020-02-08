@@ -26,6 +26,10 @@ func TestPlayScriptCompiler_Compile(t *testing.T) {
 			error:  "return statement expected in function @1:0",
 		},
 		{
+			script: "void foo(){}",
+			error:  "",
+		},
+		{
 			script: "{return 1;}",
 			error:  "return statement not in function body @1:1",
 		},
@@ -33,13 +37,13 @@ func TestPlayScriptCompiler_Compile(t *testing.T) {
 			script: "int a=1; break;",
 			error:  "break statement not in loop or switch statements @1:9",
 		},
-		//{
-		//	script: "for(int i = 0; i < 1; i++) {}",
-		//	error:  "break statement not in loop or switch statements @1:9",
-		//},
 		{
 			script: "int a; a =1.1;",
 			error:  "cannot assign 1.1 of type Float to a of type Integer @1:7",
+		},
+		{
+			script: "for(int i = 0; i < 1; i++)\n { int foo(){break;} }",
+			error:  "break statement not in loop or switch statements @2:13",
 		},
 	}
 	for _, data := range testData {

@@ -50,14 +50,14 @@ func (v *SematicValidator) hasReturnStatement(ctx antlr.Tree) bool {
 	rtn := false
 	for i := 0; i < ctx.GetChildCount(); i++ {
 		child := ctx.GetChild(i)
-		if statementContext, ok := child.(StatementContext); ok {
+		if statementContext, ok := child.(*StatementContext); ok {
 			if statementContext.RETURN() != nil {
 				rtn = true
 				break
 			}
 		} else {
-			_, ok1 := child.(FunctionDeclarationContext)
-			_, ok2 := child.(ClassDeclarationContext)
+			_, ok1 := child.(*FunctionDeclarationContext)
+			_, ok2 := child.(*ClassDeclarationContext)
 			// 从其他子语句中找 return，但是 function 和 class 中的不算
 			if !(ok1 || ok2) {
 				rtn = v.hasReturnStatement(child)
@@ -75,7 +75,7 @@ func (v *SematicValidator) ExitFunctionDeclaration(ctx *FunctionDeclarationConte
 	//TODO 更完善的是要进行控制流计算，不是仅仅有一个return语句就行了
 	if ctx.TypeTypeOrVoid() != nil {
 		if !v.hasReturnStatement(ctx) {
-			returnType := v.at.typeOfNode[ctx]
+			returnType := v.at.typeOfNode[ctx.TypeTypeOrVoid()]
 			if returnType != GetVoidType() {
 				v.at.LogError("return statement expected in function", ctx)
 			}
@@ -84,7 +84,7 @@ func (v *SematicValidator) ExitFunctionDeclaration(ctx *FunctionDeclarationConte
 }
 
 func (v *SematicValidator) ExitStatement(ctx *StatementContext) {
-	//02 类的构造函数不能有返回值
+	//02
 	if ctx.RETURN() != nil {
 		// 02-03 return语句只能出现在函数里
 		function := v.at.EnclosingFunctionOfNode(ctx)

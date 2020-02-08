@@ -3,6 +3,7 @@ package playscript
 type Scope interface {
 	Symbol
 	AddSymbol(symbol Symbol)
+	GetSymbols() []Symbol
 	GetVariable(name string) *Variable
 	// TODO，支持函数重载，需要传入
 	//GetFunction(name string, paramTypes []Type) *Function
@@ -22,6 +23,10 @@ func (s *BaseScope) AddSymbol(symbol Symbol) {
 	s.symbols = append(s.symbols, symbol)
 	// 设置该符号的作用域
 	symbol.SetEnclosingScope(s)
+}
+
+func (s *BaseScope) GetSymbols() []Symbol {
+	return s.symbols
 }
 
 func (s *BaseScope) GetVariable(name string) *Variable {

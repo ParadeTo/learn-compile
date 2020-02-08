@@ -106,8 +106,9 @@ func (tree *AnnotatedTree) LogError(message string, ctx ParserRuleContext) {
 
 // 包含某节点的函数
 func (tree *AnnotatedTree) EnclosingFunctionOfNode(ctx Tree) *Function {
-	if _, ok := ctx.GetParent().(parser.FunctionDeclarationContext); ok {
-		scope := tree.node2Scope[ctx]
+	parent := ctx.GetParent()
+	if _, ok := parent.(*parser.FunctionDeclarationContext); ok {
+		scope := tree.node2Scope[parent]
 		if function, ok := scope.(*Function); ok {
 			return function
 		}

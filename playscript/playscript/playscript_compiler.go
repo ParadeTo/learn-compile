@@ -44,11 +44,15 @@ func (compiler *PlayScriptCompiler) Compile(script string) *AnnotatedTree {
 	pass4 := NewTypeChecker(at)
 	walker.Walk(pass4, at.ast)
 
-	//pss5: 其他语义检查
+	//pass5: 其他语义检查
 	pass5 := NewSematicValidator(at)
 	walker.Walk(pass5, at.ast)
 
-	fmt.Println(at.ast.ToStringTree([]string{}, _parser))
+	//pass6: 闭包分析
+	closureAnalyzer := NewClosureAnalyzer(at)
+	closureAnalyzer.AnalyzeClosures()
+
+	fmt.Println(at.ast.ToStringTree([]string{"youxingzhi"}, _parser))
 	return at
 }
 

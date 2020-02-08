@@ -96,9 +96,6 @@ func (this *TypeChecker) ExitExpression(ctx *ExpressionContext) {
 	if ctx.GetBop() != nil && len(ctx.AllExpression()) >= 2 {
 		exp1 := ctx.Expression(0)
 		exp2 := ctx.Expression(1)
-		fmt.Printf("%p\n", exp1)
-		fmt.Printf("%p\n", exp2)
-		fmt.Println(this.at.typeOfNode)
 		type1 := this.at.typeOfNode[exp1]
 		type2 := this.at.typeOfNode[exp2]
 		switch ctx.GetBop().GetTokenType() {
@@ -111,7 +108,6 @@ func (this *TypeChecker) ExitExpression(ctx *ExpressionContext) {
 		case PlayScriptParserSUB, PlayScriptParserMUL, PlayScriptParserDIV,
 			PlayScriptParserLE, PlayScriptParserLT, PlayScriptParserGE,
 			PlayScriptParserGT:
-			fmt.Println(ctx.GetText())
 			this.checkNumericOperand(type1, ctx, ctx.Expression(0))
 			this.checkNumericOperand(type2, ctx, ctx.Expression(1))
 		case PlayScriptParserEQUAL, PlayScriptParserNOTEQUAL:

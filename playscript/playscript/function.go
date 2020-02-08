@@ -1,6 +1,9 @@
 package playscript
 
-import "github.com/antlr/antlr4/runtime/Go/antlr"
+import (
+	"github.com/antlr/antlr4/runtime/Go/antlr"
+	"learn-compile/playscript/tools"
+)
 
 // Function -> BaseScope -> BaseSymbol
 type Function struct {
@@ -12,6 +15,7 @@ type Function struct {
 	// 返回值
 	returnType Type
 	// 闭包变量，即函数里面所引用的外部环境变量
+	closureVariables *tools.Set
 }
 
 func (f *Function) AddParamType(_type Type) {
@@ -64,7 +68,7 @@ func (f *Function) ToString() string {
 
 // 该函数是不是类的方法 TODO
 func (f *Function) IsMethod() bool {
-	return true
+	return false
 }
 
 // 该函数是不是类的构造函数 TODO

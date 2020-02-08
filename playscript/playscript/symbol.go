@@ -6,7 +6,8 @@ type Symbol interface {
 	GetName() string
 	GetEnclosingScope() Scope
 	SetEnclosingScope(scope Scope)
-	SetCtx(ctx ParserRuleContext)
+	SetCtx(ctx Tree)
+	GetCtx() Tree
 }
 
 // 编译过程中产生的变量、函数、类、块，都被称作符号
@@ -14,7 +15,7 @@ type BaseSymbol struct {
 	name           string
 	visibility     int   // 可见性，如 public 还是 private
 	enclosingScope Scope // 所属作用域
-	ctx            ParserRuleContext
+	ctx            Tree
 }
 
 func (s *BaseSymbol) GetName() string {
@@ -29,8 +30,12 @@ func (s *BaseSymbol) SetEnclosingScope(scope Scope) {
 	s.enclosingScope = scope
 }
 
-func (s *BaseSymbol) SetCtx(ctx ParserRuleContext) {
+func (s *BaseSymbol) SetCtx(ctx Tree) {
 	s.ctx = ctx
+}
+
+func (s *BaseSymbol) GetCtx() Tree {
+	return s.ctx
 }
 
 func NewBaseSymbol() *BaseSymbol {

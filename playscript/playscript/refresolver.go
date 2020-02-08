@@ -105,10 +105,7 @@ func (this *RefResolver) ExitExpression(ctx *ExpressionContext) {
 	// 类型推断和综合
 	// 比如 a = 1; 对应 expression = expression -> expresion = primary -> expresion = literal
 	if ctx.Primary() != nil {
-		fmt.Println(ctx.GetText())
-		fmt.Printf("%p\n", ctx)
 		//变量引用冒泡： 如果下级是一个变量，往上冒泡传递，以便在点符号表达式中使用
-		fmt.Println(this.at.typeOfNode[ctx.Primary()])
 		_type = this.at.typeOfNode[ctx.Primary()]
 	} else if ctx.FunctionCall() != nil {
 		_type = this.at.typeOfNode[ctx.FunctionCall()]
