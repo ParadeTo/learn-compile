@@ -12,6 +12,9 @@ type PlayScriptCompiler struct {
 	parser *parser.PlayScriptParser
 }
 
+func (compiler *PlayScriptCompiler) Execute(at *AnnotatedTree) *AnnotatedTree {
+}
+
 func (compiler *PlayScriptCompiler) Compile(script string) *AnnotatedTree {
 	at := NewAnnotatedTree()
 
@@ -52,7 +55,7 @@ func (compiler *PlayScriptCompiler) Compile(script string) *AnnotatedTree {
 	closureAnalyzer := NewClosureAnalyzer(at)
 	closureAnalyzer.AnalyzeClosures()
 
-	fmt.Println(at.ast.ToStringTree([]string{"youxingzhi"}, _parser))
+	fmt.Println(at.ast.ToStringTree([]string{}, _parser))
 	return at
 }
 

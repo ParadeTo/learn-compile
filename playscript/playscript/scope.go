@@ -2,6 +2,7 @@ package playscript
 
 type Scope interface {
 	Symbol
+	ContainsSymbol(symbol Symbol) bool
 	AddSymbol(symbol Symbol)
 	GetSymbols() []Symbol
 	GetVariable(name string) *Variable
@@ -16,6 +17,15 @@ type BaseScope struct {
 	*BaseSymbol
 	// 该Scope中的成员，包括变量、方法、类等
 	symbols []Symbol
+}
+
+func (s *BaseScope) ContainsSymbol(symbol Symbol) bool {
+	for _, _symbol := range s.symbols {
+		if _symbol == symbol {
+			return true
+		}
+	}
+	return false
 }
 
 // 向scope中添加符号，同时设置好该符号的enclosingScope

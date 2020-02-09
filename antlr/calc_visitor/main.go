@@ -67,6 +67,7 @@ func main() {
 	stream := antlr.NewCommonTokenStream(lexer, antlr.TokenDefaultChannel)
 	p := parser.NewCalcParser(stream)
 	tree := p.Start()
+
 	v := &playVisitor{}
 	fmt.Println(tree.Accept(v))
 }

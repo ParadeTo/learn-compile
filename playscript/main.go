@@ -1,14 +1,11 @@
 package main
 
-import (
-	"fmt"
-	"learn-compile/playscript/playscript"
-)
+import "fmt"
 
 func main() {
-	compiler := playscript.NewPlayScriptCompiler()
-	at := compiler.Compile("int foo(){ return 4;}")
-	fmt.Println(at)
+	//compiler := playscript.NewPlayScriptCompiler()
+	//at := compiler.Compile("int foo(){ return 4;}")
+	//fmt.Println(at)
 	//scope := playscript.NewBaseScope()
 	//variable := playscript.NewVariable("a", nil, nil)
 	//scope.AddSymbol(variable)
@@ -23,4 +20,13 @@ func main() {
 	//s.Remove(3)
 	//fmt.Println(s)
 	//fmt.Println(s.Contains(3))
+	//var a interface{}
+	//var b interface{}
+	//a = 0x12
+	b := "abcdef"
+	//sa, _ := a.(string)
+	//sb, _ := b.(string)
+	//sa := fmt.Sprintf("%s", a)
+	//sb := fmt.Sprintf("%s", b)
+	fmt.Println(b[1 : len(b)-1])
 }
