@@ -12,7 +12,9 @@ type PlayScriptCompiler struct {
 	parser *parser.PlayScriptParser
 }
 
-func (compiler *PlayScriptCompiler) Execute(at *AnnotatedTree) *AnnotatedTree {
+func (compiler *PlayScriptCompiler) Execute(at *AnnotatedTree) interface{} {
+	visitor := NewASTEvaluator(at)
+	return at.ast.Accept(visitor)
 }
 
 func (compiler *PlayScriptCompiler) Compile(script string) *AnnotatedTree {

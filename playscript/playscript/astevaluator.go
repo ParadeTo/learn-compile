@@ -12,6 +12,105 @@ type ASTEvaluator struct {
 	stack []*StackFrame
 }
 
+// 执行一个函数的方法体。需要先设置参数值，然后再执行代码。
+func (this *ASTEvaluator) functionCall(functionObject *FunctionObject, paramValues []interface{}) interface{} {
+	var rtn interface{}
+
+	// 添加函数栈帧
+	functionFrame := NewFrameForFunction(functionObject)
+	this.pushStack(functionFrame)
+
+	// 给参数赋值，这些值进入 functionFrame
+	functionCtx := functionObject.function.ctx.(*FunctionDeclarationContext)
+	formalParameterListCtx := functionCtx.FormalParameters().(*FormalParametersContext).FormalParameterList().(*FormalParameterListContext)
+	if formalParameterListCtx != nil {
+		for i, iCtx := range formalParameterListCtx.AllFormalParameter() {
+			paramCtx := iCtx.(*FormalParameterContext)
+			lvalue := this.VisitVariableDeclaratorId(paramCtx.VariableDeclaratorId().(*VariableDeclaratorIdContext)).(LValue)
+			lvalue.SetValue(paramValues[i])
+		}
+	}
+
+	// 调用函数（方法）体
+	rtn = this.VisitFunctionDeclaration(functionCtx)
+
+	this.popStack()
+
+	if returnObject, ok := rtn.(*ReturnObject); ok {
+		rtn = returnObject.returnValue
+	}
+	return rtn
+}
+
+func (this *ASTEvaluator) calcParamValues(ctx *FunctionCallContext) []interface{} {
+	var paramValues []interface{}
+	if ctx.ExpressionList() != nil {
+		for _, exp := range ctx.ExpressionList().(*ExpressionListContext).AllExpression() {
+			value := this.VisitExpression(exp.(*ExpressionContext))
+			if lvalue, ok := value.(LValue); ok {
+				value = lvalue.GetValue()
+			}
+			paramValues = append(paramValues, value)
+		}
+	}
+	return paramValues
+}
+
+/**
+ * 根据函数调用的上下文，返回一个FunctionObject。
+ * 对于函数类型的变量，这个functionObject是存在变量里的；
+ * 对于普通的函数调用，此时创建一个。
+ * @param ctx
+ * @return
+ */
+func (this *ASTEvaluator) getFunctionObject(ctx *FunctionCallContext) *FunctionObject {
+	if ctx.IDENTIFIER() == nil {
+		return nil
+	}
+
+	var function *Function
+	var functionObject *FunctionObject
+
+	symbol := this.at.symbolOfNode[ctx]
+
+	// 函数类型的变量
+	if variable, ok := symbol.(*Variable); ok {
+		lvalue := this.GetLValue(variable)
+		value := lvalue.GetValue()
+		if _functionObject, ok := value.(*FunctionObject); ok {
+			functionObject = _functionObject
+			function = functionObject.function
+		}
+	} else if _function, ok := symbol.(*Function); ok { // 普通函数
+		function = _function
+	} else {
+		functionName := ctx.IDENTIFIER().GetText()
+		this.at.LogError("unable to find function or function variable "+functionName, ctx)
+		return nil
+	}
+
+	if functionObject == nil {
+		functionObject = NewFunctionObject(function)
+	}
+
+	return functionObject
+}
+
+func (this *ASTEvaluator) println(ctx *FunctionCallContext) {
+	expList := ctx.ExpressionList()
+	if expList != nil {
+		if expListCtx, ok := expList.(*ExpressionListContext); ok {
+			value := this.VisitExpressionList(expListCtx)
+			if lvalue, ok := value.(LValue); ok {
+				value = lvalue.GetValue()
+			}
+			fmt.Println(value)
+		}
+	} else {
+		fmt.Println()
+	}
+}
+
 /**
  * 栈桢入栈。
  * 其中最重要的任务，是要保证栈桢的parentFrame设置正确。否则，
@@ -126,6 +225,43 @@ func (this *ASTEvaluator) GetLValue(variable *Variable) LValue {
 	return lvalue
 }
 
+func (this *ASTEvaluator) convertToBool(value interface{}) bool {
+	if string, ok := value.(string); ok {
+		return string != ""
+	} else if int16, ok := value.(int16); ok {
+		return int16 != 0
+	} else if int32, ok := value.(int32); ok {
+		return int32 != 0
+	} else if int64, ok := value.(int64); ok {
+		return int64 != 0
+	} else if float32, ok := value.(float32); ok {
+		return float32 != 0
+	} else if float64, ok := value.(float64); ok {
+		return float64 != 0
+	} else if bool, ok := value.(bool); ok {
+		return bool
+	} else {
+		return value != nil
+	}
+}
+
+/**
+* 为闭包获取环境变量的值
+* @param function 闭包所关联的函数。这个函数会访问一些环境变量。
+* @param valueContainer 存放环境变量的值的容器
+ */
+func (this *ASTEvaluator) getClosureValuesForFunction(function *Function, valueContainer PlayObject) {
+	if function.closureVariables != nil {
+		function.closureVariables.ForEach(func(item interface{}) {
+			if _var, ok := item.(*Variable); ok {
+				lvalue := this.GetLValue(_var) // 现在还可以从栈里取，退出函数以后就不行了
+				value := lvalue.GetValue()
+				valueContainer.SetValue(_var, value)
+			}
+		})
+	}
+}
+
 //---- visit ----
 func (this *ASTEvaluator) VisitBlock(ctx *BlockContext) interface{} {
 	scope := this.at.node2Scope[ctx]
@@ -136,22 +272,38 @@ func (this *ASTEvaluator) VisitBlock(ctx *BlockContext) interface{} {
 		}
 	}
 
-	//rtn :=
+	rtn := this.VisitBlockStatements(ctx.BlockStatements().(*BlockStatementsContext))
+
+	if scope != nil {
+		this.popStack()
+	}
+
+	return rtn
 }
 
 func (this *ASTEvaluator) VisitBlockStatements(ctx *BlockStatementsContext) interface{} {
 	var rtn interface{}
 	for _, child := range ctx.AllBlockStatement() {
-		rtn
+		rtn = this.VisitBlockStatement(child.(*BlockStatementContext))
+		//如果返回的是break，那么不执行下面的语句, todo 表示怀疑
+		if _, ok := rtn.(*BreakObject); ok {
+			break
+		} else if _, ok := rtn.(*ReturnObject); ok { //碰到return，退出函数
+			// TODO 要能层层退出一个个block，弹出一个栈桢
+			break
+		}
 	}
+	return rtn
 }
 
 func (this *ASTEvaluator) VisitBlockStatement(ctx *BlockStatementContext) interface{} {
 	var rtn interface{}
+	// 这里没有处理 functionDeclaration 和 classDeclaration
+	// 因为这里是求值阶段，这两个语句不会有返回值
 	if ctx.VariableDeclarators() != nil {
-
+		rtn = this.VisitVariableDeclarators(ctx.VariableDeclarators().(*VariableDeclaratorsContext))
 	} else if ctx.Statement() != nil {
-
+		rtn = this.VisitStatement(ctx.Statement().(*StatementContext))
 	}
 	return rtn
 }
@@ -162,22 +314,156 @@ func (this *ASTEvaluator) VisitStatement(ctx *StatementContext) interface{} {
 		//if statementExpressionCtx, ok := ctx.GetStatementExpression().(*ExpressionContext)
 		//rtn = this.VisitExpression()
 	} else if ctx.IF() != nil {
-		//condition :=
+		condition := this.convertToBool(this.VisitParExpression(ctx.ParExpression().(*ParExpressionContext)))
+		if condition == true {
+			rtn = this.VisitStatement(ctx.Statement(0).(*StatementContext))
+		} else if ctx.ELSE() != nil {
+			rtn = this.VisitStatement(ctx.Statement(1).(*StatementContext))
+		}
+	} else if ctx.WHILE() != nil {
+		parExpressionCtx := ctx.ParExpression().(*ParExpressionContext)
+		if parExpressionCtx.Expression() != nil && ctx.Statement(0) != nil {
+			for {
+				//每次循环都要计算一下循环条件
+				condition := true
+				value := this.VisitExpression(parExpressionCtx.Expression().(*ExpressionContext))
+				if lvalue, ok := value.(LValue); ok {
+					condition = this.convertToBool(lvalue.GetValue())
+				} else {
+					condition = this.convertToBool(value)
+				}
+
+				if condition {
+					rtn = this.VisitStatement(ctx.Statement(0).(*StatementContext))
+					if _, ok := rtn.(*BreakObject); ok {
+						rtn = nil
+						break
+					} else if _, ok := rtn.(*ReturnObject); ok {
+						break
+					}
+				} else {
+					break
+				}
+			}
+		}
+	} else if ctx.FOR() != nil {
+		scope := this.at.node2Scope[ctx].(*BlockScope)
+		frame := NewFrameForBlockScope(scope)
+		this.pushStack(frame)
+
+		forControl := ctx.ForControl().(*ForControlContext)
+		if forControl.EnhancedForControl() != nil {
+
+		} else {
+			// 初始化部分执行一次
+			if forControl.ForInit() != nil {
+				rtn = this.VisitForInit(forControl.ForInit().(*ForInitContext))
+			}
+
+			for {
+				// 如果没有条件判断部分，意味着一直循环
+				condition := true
+				if forControl.Expression() != nil {
+					value := this.VisitExpression(forControl.Expression().(*ExpressionContext))
+					if lvalue, ok := value.(LValue); ok {
+						condition = this.convertToBool(lvalue.GetValue())
+					} else {
+						condition = this.convertToBool(value)
+					}
+				}
+
+				if condition {
+					// 执行for的语句体
+					rtn = this.VisitStatement(ctx.Statement(0).(*StatementContext))
+					if _, ok := rtn.(*BreakObject); ok {
+						rtn = nil
+						break
+					} else if _, ok := rtn.(*ReturnObject); ok {
+						break
+					}
+
+					// 执行forUpdate，通常是“i++”这样的语句。这个执行顺序不能出错。
+					if forControl.GetForUpdate() != nil {
+						this.VisitExpressionList(forControl.GetForUpdate().(*ExpressionListContext))
+					}
+				} else {
+					break
+				}
+			}
+		}
+		this.popStack()
+	} else if ctx.GetBlockLabel() != nil { // block
+		rtn = this.VisitBlock(ctx.GetBlockLabel().(*BlockContext))
+	} else if ctx.BREAK() != nil {
+		rtn = GetBreakObject()
+	} else if ctx.RETURN() != nil {
+		if ctx.Expression() != nil {
+			rtn = this.VisitExpression(ctx.Expression().(*ExpressionContext))
+			//return语句应该不需要左值   //TODO 取左值的场景需要优化，目前都是取左值。
+			if lvalue, ok := rtn.(LValue); ok {
+				rtn = lvalue.GetValue()
+			}
+			// 把闭包涉及的环境变量都打包带走
+			if functionObject, ok := rtn.(*FunctionObject); ok {
+				this.getClosureValuesForFunction(functionObject.function, functionObject)
+			} else if false { // TODO class
+
+			}
+		}
+
+		//把真实的返回值封装在一个ReturnObject对象里，告诉visitBlockStatements停止执行下面的语句
+		rtn = NewReturnObject(rtn)
 	}
+	return rtn
 }
 
 func (this *ASTEvaluator) VisitParExpression(ctx *ParExpressionContext) interface{} {
-	if 
-	return this.VisitExpression()
+	if expCtx, ok := ctx.Expression().(*ExpressionContext); ok {
+		return this.VisitExpression(expCtx)
+	}
+	return nil
 }
 
 func (this *ASTEvaluator) VisitVariableDeclarators(ctx *VariableDeclaratorsContext) interface{} {
+	var rtn interface{}
+	for _, child := range ctx.AllVariableDeclarator() {
+		if variableDeclaratorContext, ok := child.(*VariableDeclaratorContext); ok {
+			rtn = this.VisitVariableDeclarator(variableDeclaratorContext)
+		}
+	}
+	return rtn
 }
 
 func (this *ASTEvaluator) VisitVariableDeclarator(ctx *VariableDeclaratorContext) interface{} {
+	var rtn interface{}
+	value := this.VisitVariableDeclaratorId(ctx.VariableDeclaratorId().(*VariableDeclaratorIdContext))
+	if ctx.VariableInitializer() != nil {
+		rtn = this.VisitVariableInitializer(ctx.VariableInitializer().(*VariableInitializerContext))
+		if lvalue, ok := rtn.(LValue); ok {
+			rtn = lvalue.GetValue()
+		}
+		value.(LValue).SetValue(rtn)
+	}
+	return rtn
+}
+
+func (this *ASTEvaluator) VisitVariableDeclaratorId(ctx *VariableDeclaratorIdContext) interface{} {
+	var rtn interface{}
+	symbol := this.at.symbolOfNode[ctx]
+	if variable, ok := symbol.(*Variable); ok {
+		rtn = this.GetLValue(variable)
+	}
+	return rtn
 }
 
 func (this *ASTEvaluator) VisitVariableInitializer(ctx *VariableInitializerContext) interface{} {
+	var rtn interface{}
+	if ctx.Expression() != nil {
+		if expCtx, ok := ctx.Expression().(*ExpressionContext); ok {
+			rtn = this.VisitExpression(expCtx)
+		}
+	}
+	return rtn
 }
 
 func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
@@ -320,6 +606,46 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 	return rtn
 }
 
+func (this *ASTEvaluator) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
+	// TODO 暂时不考虑 this 和 super
+
+	var rtn interface{}
+	//这是调用时的名称，不一定是真正的函数名，还可能是函数尅性的变量名
+	functionName := ctx.IDENTIFIER().GetText()
+
+	if functionName == "println" {
+		this.println(ctx)
+		return rtn
+	}
+
+	//在上下文中查找出函数，并根据需要创建FunctionObject
+	functionObject := this.getFunctionObject(ctx)
+	//function := functionObject.function
+
+	// todo 如果是对象的构造方法，则按照对象方法调用去执行，并返回所创建出的对象。
+
+	// 计算参数值
+	paramValues := this.calcParamValues(ctx)
+
+	fmt.Println("\n>>FunctionCall: " + ctx.GetText())
+
+	// 计算
+	rtn = this.functionCall(functionObject, paramValues)
+	return rtn
+}
+
+func (this *ASTEvaluator) VisitFunctionDeclaration(ctx *FunctionDeclarationContext) interface{} {
+	return this.VisitFunctionBody(ctx.FunctionBody().(*FunctionBodyContext))
+}
+
+func (this *ASTEvaluator) VisitFunctionBody(ctx *FunctionBodyContext) interface{} {
+	var rtn interface{}
+	if ctx.Block() != nil {
+		rtn = this.VisitBlock(ctx.Block().(*BlockContext))
+	}
+	return rtn
+}
+
 func (this *ASTEvaluator) VisitPrimary(ctx *PrimaryContext) interface{} {
 	var rtn interface{}
 	// 字面量
@@ -355,7 +681,7 @@ func (this *ASTEvaluator) VisitLiteral(ctx *LiteralContext) interface{} {
 		if ok {
 			rtn = this.VisitIntegerLiteral(ctx)
 		}
-	} else if ctx.FloatLiteral() != nil { 	// 浮点数
+	} else if ctx.FloatLiteral() != nil { // 浮点数
 		ctx, ok := ctx.FloatLiteral().(*FloatLiteralContext)
 		if ok {
 			rtn = this.VisitFloatLiteral(ctx)
@@ -368,7 +694,7 @@ func (this *ASTEvaluator) VisitLiteral(ctx *LiteralContext) interface{} {
 		}
 	} else if ctx.STRING_LITERAL() != nil { // 字符串
 		strWithQuotationMark := ctx.STRING_LITERAL().GetText()
-		rtn = strWithQuotationMark[1:len(strWithQuotationMark)-1]
+		rtn = strWithQuotationMark[1 : len(strWithQuotationMark)-1]
 	} else if ctx.CHAR_LITERAL() != nil { // 单个字符
 		//rtn = ctx.CHAR_LITERAL().GetText()
 	} else if ctx.NULL_LITERAL() != nil { // null 字面量
@@ -392,6 +718,17 @@ func (this *ASTEvaluator) VisitFloatLiteral(ctx *FloatLiteralContext) interface{
 	var rtn interface{}
 	if float, error := strconv.ParseFloat(ctx.GetText(), 32); error == nil {
 		rtn = float32(float)
+	}
+	return rtn
+}
+
+func (this *ASTEvaluator) VisitProg(ctx *ProgContext) interface{} {
+	var rtn interface{}
+	scope := this.at.node2Scope[ctx]
+	if blockScope, ok := scope.(*BlockScope); ok {
+		this.pushStack(NewFrameForBlockScope(blockScope))
+		rtn = this.VisitBlockStatements(ctx.BlockStatements().(*BlockStatementsContext))
+		this.popStack()
 	}
 	return rtn
 }

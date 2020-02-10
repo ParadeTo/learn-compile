@@ -13,20 +13,21 @@ type MyLValue struct {
 	valueContainer PlayObject
 }
 
-func (MyLValue) GetValue() interface{} {
-	panic("implement me")
+func (this *MyLValue) GetValue() interface{} {
+	// TODO 对于this或super关键字，直接返回这个对象，应该是ClassObject
+	return this.valueContainer.GetValue(this.variable)
 }
 
-func (MyLValue) SetValue(interface{}) {
-	panic("implement me")
+func (this *MyLValue) SetValue(value interface{}) {
+	this.valueContainer.SetValue(this.variable, value)
 }
 
-func (MyLValue) GetVariable() *Variable {
-	panic("implement me")
+func (this *MyLValue) GetVariable() *Variable {
+	return this.variable
 }
 
-func (MyLValue) GetValueContainer() PlayObject {
-	panic("implement me")
+func (this *MyLValue) GetValueContainer() PlayObject {
+	return this.valueContainer
 }
 
 func NewMyLValue(valueContainer PlayObject, variable *Variable) *MyLValue {

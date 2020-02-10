@@ -32,6 +32,12 @@ func (s *Set) RemoveSubset(subset *Set) {
 	}
 }
 
+func (s *Set) ForEach(cb func(interface{})) {
+	for item := range s.m {
+		cb(item)
+	}
+}
+
 func (s *Set) Size() int {
 	return len(s.m)
 }
