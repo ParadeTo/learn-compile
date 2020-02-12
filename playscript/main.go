@@ -2,13 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"learn-compile/playscript/playscript"
 )
 
 func main() {
+	script, _ := ioutil.ReadFile("./playscript/playscript/testdata/closure.play")
 	compiler := playscript.NewPlayScriptCompiler()
-	at := compiler.Compile("int foo(){ return 4;} println(foo());")
-	fmt.Println(compiler.Execute(at))
+	at := compiler.Compile(string(script))
+	fmt.Println(compiler.Execute(at, false))
 	//fmt.Println(at)
 	//scope := playscript.NewBaseScope()
 	//variable := playscript.NewVariable("a", nil, nil)

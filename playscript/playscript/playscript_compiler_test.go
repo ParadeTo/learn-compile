@@ -3,6 +3,7 @@ package playscript
 import (
 	"fmt"
 	. "github.com/smartystreets/goconvey/convey"
+	"io/ioutil"
 	"testing"
 )
 
@@ -55,6 +56,37 @@ func TestPlayScriptCompiler_Compile(t *testing.T) {
 			} else {
 				So(at.GetFirstCompilationError(), ShouldEqual, nil)
 			}
+		})
+	}
+}
+
+type TestDataExecute struct {
+	scriptFilename string
+	printlnArr     []interface{}
+	result         interface{}
+}
+
+func TestPlayScriptCompiler_Execute(t *testing.T) {
+	testData := []TestDataExecute{
+		{
+			scriptFilename: "blockscope.play",
+			result:         nil,
+			printlnArr:     []interface{}{0, 2, 3, 0},
+		},
+		{
+			scriptFilename: "arithmetic.play",
+			result:         6,
+			printlnArr:     nil,
+		},
+	}
+	for _, data := range testData {
+		Convey(fmt.Sprintf("%s", data.scriptFilename), t, func() {
+			compiler := NewPlayScriptCompiler()
+			script, _ := ioutil.ReadFile("./testdata/" + data.scriptFilename)
+			at := compiler.Compile(string(script))
+			result := compiler.Execute(at, true)
+			So(result, ShouldEqual, data.result)
+			So(compiler.visitor.printlnArr, ShouldResemble, data.printlnArr)
 		})
 	}
 }

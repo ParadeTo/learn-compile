@@ -26,6 +26,13 @@ func (this *StackFrame) ToString() string {
 	return rtn
 }
 
+func NewFrame(scope Scope) *StackFrame {
+	stackFrame := &StackFrame{}
+	stackFrame.scope = scope
+	stackFrame.object = NewBasePlayObject()
+	return stackFrame
+}
+
 func NewFrameForBlockScope(scope *BlockScope) *StackFrame {
 	stackFrame := &StackFrame{}
 	stackFrame.scope = scope

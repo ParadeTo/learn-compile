@@ -10,6 +10,9 @@ type ASTEvaluator struct {
 	*BasePlayScriptVisitor
 	at    *AnnotatedTree
 	stack []*StackFrame
+	// 是否保存打印的信息
+	cachePrintln bool
+	printlnArr   []interface{}
 }
 
 // 执行一个函数的方法体。需要先设置参数值，然后再执行代码。
@@ -22,8 +25,11 @@ func (this *ASTEvaluator) functionCall(functionObject *FunctionObject, paramValu
 
 	// 给参数赋值，这些值进入 functionFrame
 	functionCtx := functionObject.function.ctx.(*FunctionDeclarationContext)
-	formalParameterListCtx := functionCtx.FormalParameters().(*FormalParametersContext).FormalParameterList().(*FormalParameterListContext)
-	if formalParameterListCtx != nil {
+	formalParametersContext := functionCtx.FormalParameters().(*FormalParametersContext)
+	fmt.Println(formalParametersContext)
+	fmt.Println(formalParametersContext.FormalParameterList())
+	if formalParametersContext.FormalParameterList() != nil {
+		formalParameterListCtx := formalParametersContext.FormalParameterList().(*FormalParameterListContext)
 		for i, iCtx := range formalParameterListCtx.AllFormalParameter() {
 			paramCtx := iCtx.(*FormalParameterContext)
 			lvalue := this.VisitVariableDeclaratorId(paramCtx.VariableDeclaratorId().(*VariableDeclaratorIdContext)).(LValue)
@@ -102,7 +108,11 @@ func (this *ASTEvaluator) println(ctx *FunctionCallContext) {
 		if expListCtx, ok := expList.(*ExpressionListContext); ok {
 			value := this.VisitExpressionList(expListCtx)
 			if lvalue, ok := value.(LValue); ok {
+				//fmt.Printf("%p %d\n", lvalue.GetVariable(), lvalue.GetValue())
 				value = lvalue.GetValue()
+			}
+			if this.cachePrintln {
+				this.printlnArr = append(this.printlnArr, value)
 			}
 			fmt.Println(value)
 		}
@@ -194,10 +204,20 @@ func (this *ASTEvaluator) popStack() {
 func (this *ASTEvaluator) GetLValue(variable *Variable) LValue {
 	f := this.stack[len(this.stack)-1]
 	var valueContainer PlayObject
+	//fmt.Printf("variable=%p\n", variable)
 	for {
 		if f == nil {
 			break
 		}
+		//fmt.Println(f.scope.ToString())
+		//for _, symbol := range f.scope.GetSymbols() {
+		//	if a, ok := symbol.(*Variable); ok {
+		//		fmt.Printf("%p %+v %+v\n", a, a, a.GetName())
+		//	}
+		//	if a, ok := symbol.(*BlockScope); ok {
+		//		fmt.Println(a.GetName())
+		//	}
+		//}
 		if f.scope.ContainsSymbol(variable) {
 			valueContainer = f.object
 			break
@@ -228,16 +248,10 @@ func (this *ASTEvaluator) GetLValue(variable *Variable) LValue {
 func (this *ASTEvaluator) convertToBool(value interface{}) bool {
 	if string, ok := value.(string); ok {
 		return string != ""
-	} else if int16, ok := value.(int16); ok {
-		return int16 != 0
-	} else if int32, ok := value.(int32); ok {
-		return int32 != 0
-	} else if int64, ok := value.(int64); ok {
-		return int64 != 0
+	} else if i, ok := value.(int); ok {
+		return i != 0
 	} else if float32, ok := value.(float32); ok {
 		return float32 != 0
-	} else if float64, ok := value.(float64); ok {
-		return float64 != 0
 	} else if bool, ok := value.(bool); ok {
 		return bool
 	} else {
@@ -311,8 +325,8 @@ func (this *ASTEvaluator) VisitBlockStatement(ctx *BlockStatementContext) interf
 func (this *ASTEvaluator) VisitStatement(ctx *StatementContext) interface{} {
 	var rtn interface{}
 	if ctx.GetStatementExpression() != nil {
-		//if statementExpressionCtx, ok := ctx.GetStatementExpression().(*ExpressionContext)
-		//rtn = this.VisitExpression()
+		statementExpressionCtx := ctx.GetStatementExpression().(*ExpressionContext)
+		rtn = this.VisitExpression(statementExpressionCtx)
 	} else if ctx.IF() != nil {
 		condition := this.convertToBool(this.VisitParExpression(ctx.ParExpression().(*ParExpressionContext)))
 		if condition == true {
@@ -424,6 +438,24 @@ func (this *ASTEvaluator) VisitParExpression(ctx *ParExpressionContext) interfac
 	return nil
 }
 
+func (this *ASTEvaluator) VisitExpressionList(ctx *ExpressionListContext) interface{} {
+	var rtn interface{}
+	for _, child := range ctx.AllExpression() {
+		rtn = this.VisitExpression(child.(*ExpressionContext))
+	}
+	return rtn
+}
+
+func (this *ASTEvaluator) VisitForInit(ctx *ForInitContext) interface{} {
+	var rtn interface{}
+	if ctx.VariableDeclarators() != nil {
+		rtn = this.VisitVariableDeclarators(ctx.VariableDeclarators().(*VariableDeclaratorsContext))
+	} else if ctx.ExpressionList() != nil {
+		rtn = this.VisitExpressionList(ctx.ExpressionList().(*ExpressionListContext))
+	}
+	return rtn
+}
+
 func (this *ASTEvaluator) VisitVariableDeclarators(ctx *VariableDeclaratorsContext) interface{} {
 	var rtn interface{}
 	for _, child := range ctx.AllVariableDeclarator() {
@@ -443,6 +475,7 @@ func (this *ASTEvaluator) VisitVariableDeclarator(ctx *VariableDeclaratorContext
 			rtn = lvalue.GetValue()
 		}
 		value.(LValue).SetValue(rtn)
+		//fmt.Printf("%p %d\n", value.(LValue).GetVariable(), value.(LValue).GetValue())
 	}
 	return rtn
 }
@@ -460,6 +493,7 @@ func (this *ASTEvaluator) VisitVariableInitializer(ctx *VariableInitializerConte
 	var rtn interface{}
 	if ctx.Expression() != nil {
 		if expCtx, ok := ctx.Expression().(*ExpressionContext); ok {
+			//fmt.Println(expCtx.GetText())
 			rtn = this.VisitExpression(expCtx)
 		}
 	}
@@ -484,7 +518,7 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 		}
 
 		if value, ok := right.(LValue); ok {
-			right = value.GetValue()
+			rightObject = value.GetValue()
 		}
 
 		// 本节点期待的数据类型
@@ -525,8 +559,9 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 			b2, _ := rightObject.(bool)
 			rtn = b1 || b2
 		case PlayScriptParserASSIGN:
-			if left, ok := leftObject.(LValue); ok {
+			if left, ok := left.(LValue); ok {
 				left.SetValue(rightObject)
+				//fmt.Printf("%p %d\n", left.GetVariable(), left.GetValue())
 				rtn = right
 			} else {
 				fmt.Println("Unsupported feature during assignment")
@@ -554,17 +589,18 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 		switch ctx.GetPostfix().GetTokenType() {
 		case PlayScriptParserINC:
 			// short 呢
+			// 暂时不支持 long 和 short
 			if _type == Integer {
-				lValue.SetValue(value.(int32) + 1)
+				lValue.SetValue(value.(int) + 1)
 			} else {
-				lValue.SetValue(value.(int64) + 1)
+				lValue.SetValue(value.(int) + 1)
 			}
 			rtn = value
 		case PlayScriptParserDEC:
 			if _type == Integer {
-				lValue.SetValue(value.(int32) - 1)
+				lValue.SetValue(value.(int) - 1)
 			} else {
-				lValue.SetValue(value.(int64) - 1)
+				lValue.SetValue(value.(int) - 1)
 			}
 			rtn = value
 		}
@@ -584,16 +620,16 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 		case PlayScriptParserINC:
 			// short 呢
 			if _type == Integer {
-				rtn = value.(int32) + 1
+				rtn = value.(int) + 1
 			} else {
-				rtn = value.(int64) + 1
+				rtn = value.(int) + 1
 			}
 			lValue.SetValue(rtn)
 		case PlayScriptParserDEC:
 			if _type == Integer {
-				rtn = value.(int32) - 1
+				rtn = value.(int) - 1
 			} else {
-				rtn = value.(int64) - 1
+				rtn = value.(int) - 1
 			}
 			lValue.SetValue(rtn)
 		}
@@ -725,17 +761,18 @@ func (this *ASTEvaluator) VisitFloatLiteral(ctx *FloatLiteralContext) interface{
 func (this *ASTEvaluator) VisitProg(ctx *ProgContext) interface{} {
 	var rtn interface{}
 	scope := this.at.node2Scope[ctx]
-	if blockScope, ok := scope.(*BlockScope); ok {
-		this.pushStack(NewFrameForBlockScope(blockScope))
-		rtn = this.VisitBlockStatements(ctx.BlockStatements().(*BlockStatementsContext))
-		this.popStack()
-	}
+	//if blockScope, ok := scope.(*BlockScope); ok {
+	this.pushStack(NewFrame(scope))
+	rtn = this.VisitBlockStatements(ctx.BlockStatements().(*BlockStatementsContext))
+	this.popStack()
+	//}
 	return rtn
 }
 
 // -----各种运算-----
 func (this *ASTEvaluator) add(obj1, obj2 interface{}, targetType Type) interface{} {
 	var rtn interface{}
+	// 暂时不支持真正的 long 和 short 以及 double
 	if targetType == String {
 		str1, ok1 := obj1.(string)
 		str2, ok2 := obj2.(string)
@@ -743,20 +780,20 @@ func (this *ASTEvaluator) add(obj1, obj2 interface{}, targetType Type) interface
 			rtn = str1 + str2
 		}
 	} else if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 + int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 + int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 + int2
 		}
@@ -767,8 +804,8 @@ func (this *ASTEvaluator) add(obj1, obj2 interface{}, targetType Type) interface
 			rtn = float1 + float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 + double2
 		}
@@ -782,20 +819,20 @@ func (this *ASTEvaluator) add(obj1, obj2 interface{}, targetType Type) interface
 func (this *ASTEvaluator) minue(obj1, obj2 interface{}, targetType Type) interface{} {
 	var rtn interface{}
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 - int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 - int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 - int2
 		}
@@ -806,8 +843,8 @@ func (this *ASTEvaluator) minue(obj1, obj2 interface{}, targetType Type) interfa
 			rtn = float1 - float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 - double2
 		}
@@ -821,20 +858,20 @@ func (this *ASTEvaluator) minue(obj1, obj2 interface{}, targetType Type) interfa
 func (this *ASTEvaluator) mul(obj1, obj2 interface{}, targetType Type) interface{} {
 	var rtn interface{}
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 * int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 * int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 * int2
 		}
@@ -845,8 +882,8 @@ func (this *ASTEvaluator) mul(obj1, obj2 interface{}, targetType Type) interface
 			rtn = float1 * float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 * double2
 		}
@@ -860,20 +897,20 @@ func (this *ASTEvaluator) mul(obj1, obj2 interface{}, targetType Type) interface
 func (this *ASTEvaluator) div(obj1, obj2 interface{}, targetType Type) interface{} {
 	var rtn interface{}
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 / int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 / int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 / int2
 		}
@@ -884,8 +921,8 @@ func (this *ASTEvaluator) div(obj1, obj2 interface{}, targetType Type) interface
 			rtn = float1 / float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 / double2
 		}
@@ -899,20 +936,20 @@ func (this *ASTEvaluator) div(obj1, obj2 interface{}, targetType Type) interface
 func (this *ASTEvaluator) EQ(obj1, obj2 interface{}, targetType Type) bool {
 	var rtn bool
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 == int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 == int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 == int2
 		}
@@ -923,8 +960,8 @@ func (this *ASTEvaluator) EQ(obj1, obj2 interface{}, targetType Type) bool {
 			rtn = float1 == float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 == double2
 		}
@@ -938,20 +975,20 @@ func (this *ASTEvaluator) EQ(obj1, obj2 interface{}, targetType Type) bool {
 func (this *ASTEvaluator) GE(obj1, obj2 interface{}, targetType Type) bool {
 	rtn := false
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 >= int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 >= int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 >= int2
 		}
@@ -962,8 +999,8 @@ func (this *ASTEvaluator) GE(obj1, obj2 interface{}, targetType Type) bool {
 			rtn = float1 >= float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 >= double2
 		}
@@ -975,20 +1012,20 @@ func (this *ASTEvaluator) GE(obj1, obj2 interface{}, targetType Type) bool {
 func (this *ASTEvaluator) GT(obj1, obj2 interface{}, targetType Type) bool {
 	rtn := false
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 > int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 > int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 > int2
 		}
@@ -999,8 +1036,8 @@ func (this *ASTEvaluator) GT(obj1, obj2 interface{}, targetType Type) bool {
 			rtn = float1 > float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 > double2
 		}
@@ -1012,20 +1049,20 @@ func (this *ASTEvaluator) GT(obj1, obj2 interface{}, targetType Type) bool {
 func (this *ASTEvaluator) LE(obj1, obj2 interface{}, targetType Type) bool {
 	rtn := false
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 <= int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 <= int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 <= int2
 		}
@@ -1036,8 +1073,8 @@ func (this *ASTEvaluator) LE(obj1, obj2 interface{}, targetType Type) bool {
 			rtn = float1 <= float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 <= double2
 		}
@@ -1049,20 +1086,20 @@ func (this *ASTEvaluator) LE(obj1, obj2 interface{}, targetType Type) bool {
 func (this *ASTEvaluator) LT(obj1, obj2 interface{}, targetType Type) bool {
 	rtn := false
 	if targetType == Integer {
-		int1, ok1 := obj1.(int32)
-		int2, ok2 := obj2.(int32)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 < int2
 		}
 	} else if targetType == Short {
-		int1, ok1 := obj1.(int16)
-		int2, ok2 := obj2.(int16)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 < int2
 		}
 	} else if targetType == Long {
-		int1, ok1 := obj1.(int64)
-		int2, ok2 := obj2.(int64)
+		int1, ok1 := obj1.(int)
+		int2, ok2 := obj2.(int)
 		if ok1 && ok2 {
 			rtn = int1 < int2
 		}
@@ -1073,8 +1110,8 @@ func (this *ASTEvaluator) LT(obj1, obj2 interface{}, targetType Type) bool {
 			rtn = float1 < float2
 		}
 	} else if targetType == Double {
-		double1, ok1 := obj1.(float64)
-		double2, ok2 := obj2.(float64)
+		double1, ok1 := obj1.(float32)
+		double2, ok2 := obj2.(float32)
 		if ok1 && ok2 {
 			rtn = double1 < double2
 		}
@@ -1083,6 +1120,6 @@ func (this *ASTEvaluator) LT(obj1, obj2 interface{}, targetType Type) bool {
 	return rtn
 }
 
-func NewASTEvaluator(at *AnnotatedTree) *ASTEvaluator {
-	return &ASTEvaluator{at: at}
+func NewASTEvaluator(at *AnnotatedTree, cachePrintln bool) *ASTEvaluator {
+	return &ASTEvaluator{at: at, cachePrintln: cachePrintln}
 }

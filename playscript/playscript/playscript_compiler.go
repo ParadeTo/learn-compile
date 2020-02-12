@@ -7,14 +7,15 @@ import (
 )
 
 type PlayScriptCompiler struct {
-	at     *AnnotatedTree
-	lexer  *parser.PlayScriptLexer
-	parser *parser.PlayScriptParser
+	at      *AnnotatedTree
+	visitor *ASTEvaluator
+	lexer   *parser.PlayScriptLexer
+	parser  *parser.PlayScriptParser
 }
 
-func (compiler *PlayScriptCompiler) Execute(at *AnnotatedTree) interface{} {
-	visitor := NewASTEvaluator(at)
-	return at.ast.Accept(visitor)
+func (compiler *PlayScriptCompiler) Execute(at *AnnotatedTree, cachePrintln bool) interface{} {
+	compiler.visitor = NewASTEvaluator(at, cachePrintln)
+	return at.ast.Accept(compiler.visitor)
 }
 
 func (compiler *PlayScriptCompiler) Compile(script string) *AnnotatedTree {
