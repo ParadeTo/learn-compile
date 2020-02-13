@@ -99,11 +99,11 @@ func (this *RefResolver) ExitExpression(ctx *ExpressionContext) {
 		// symbol := this.at.symbolOfNode[ctx.Expression(0)]
 	} else if ctx.Primary() != nil {
 		symbol := this.at.symbolOfNode[ctx.Primary()]
-		fmt.Println(ctx.GetStart().GetLine())
-		fmt.Println(ctx.GetText())
-		for key, value := range this.at.symbolOfNode {
-			fmt.Printf("%p %p %s\n", key, value, value.GetName())
-		}
+		//fmt.Println(ctx.GetStart().GetLine())
+		//fmt.Println(ctx.GetText())
+		//for key, value := range this.at.symbolOfNode {
+		//	fmt.Printf("%p %p %s\n", key, value, value.GetName())
+		//}
 		if symbol != nil {
 			this.at.symbolOfNode[ctx] = symbol
 		}

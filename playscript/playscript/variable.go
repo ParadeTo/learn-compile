@@ -19,7 +19,7 @@ func (v *Variable) ToString() string {
 	return "Variable: " + v.name + " -> " + v._type.ToString()
 }
 
-func NewVariable(name string, enclosingScope Scope, ctx antlr.ParserRuleContext) *Variable {
+func NewVariable(name string, enclosingScope Scope, ctx antlr.Tree) *Variable {
 	variable := &Variable{BaseSymbol: &BaseSymbol{name: name, ctx: ctx}}
 	variable.SetEnclosingScope(enclosingScope)
 	return variable

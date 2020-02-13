@@ -26,8 +26,8 @@ func (this *ASTEvaluator) functionCall(functionObject *FunctionObject, paramValu
 	// 给参数赋值，这些值进入 functionFrame
 	functionCtx := functionObject.function.ctx.(*FunctionDeclarationContext)
 	formalParametersContext := functionCtx.FormalParameters().(*FormalParametersContext)
-	fmt.Println(formalParametersContext)
-	fmt.Println(formalParametersContext.FormalParameterList())
+	//fmt.Println(formalParametersContext)
+	//fmt.Println(formalParametersContext.FormalParameterList())
 	if formalParametersContext.FormalParameterList() != nil {
 		formalParameterListCtx := formalParametersContext.FormalParameterList().(*FormalParameterListContext)
 		for i, iCtx := range formalParameterListCtx.AllFormalParameter() {
@@ -256,6 +256,22 @@ func (this *ASTEvaluator) convertToBool(value interface{}) bool {
 		return bool
 	} else {
 		return value != nil
+	}
+}
+
+func (this *ASTEvaluator) convertToString(value interface{}) string {
+	if i, ok := value.(int); ok {
+		return strconv.Itoa(i)
+	} else if float32, ok := value.(float32); ok {
+		return strconv.FormatFloat(float64(float32), 'f', -1, 64)
+	} else if bool, ok := value.(bool); ok {
+		return strconv.FormatBool(bool)
+	} else {
+		if s, ok := value.(string); ok {
+			return s
+		} else {
+			return ""
+		}
 	}
 }
 
@@ -505,6 +521,8 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 	if ctx.GetBop() != nil && len(ctx.AllExpression()) >= 2 {
 		exp1, ok1 := ctx.Expression(0).(*ExpressionContext)
 		exp2, ok2 := ctx.Expression(1).(*ExpressionContext)
+		//fmt.Println(exp1.GetText())
+		//fmt.Println(exp2.GetText())
 		if !(ok1 && ok2) {
 			fmt.Println("VisitExpression exp1 or exp2 cannot convert")
 		}
@@ -774,11 +792,7 @@ func (this *ASTEvaluator) add(obj1, obj2 interface{}, targetType Type) interface
 	var rtn interface{}
 	// 暂时不支持真正的 long 和 short 以及 double
 	if targetType == String {
-		str1, ok1 := obj1.(string)
-		str2, ok2 := obj2.(string)
-		if ok1 && ok2 {
-			rtn = str1 + str2
-		}
+		rtn = this.convertToString(obj1) + this.convertToString(obj2)
 	} else if targetType == Integer {
 		int1, ok1 := obj1.(int)
 		int2, ok2 := obj2.(int)

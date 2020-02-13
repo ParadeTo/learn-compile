@@ -12,5 +12,5 @@ func (functionObject *FunctionObject) SetFunction(function *Function) {
 }
 
 func NewFunctionObject(function *Function) *FunctionObject {
-	return &FunctionObject{function: function}
+	return &FunctionObject{function: function, BasePlayObject: NewBasePlayObject()}
 }

@@ -33,17 +33,18 @@ type SematicValidator struct {
 // break只能出现在循环语句或switch-case语句里
 func (v *SematicValidator) checkBreak(ctx antlr.Tree) bool {
 	parent := ctx.GetParent()
-	if statementContext, ok := parent.(StatementContext); ok {
-		return statementContext.FOR() != nil || statementContext.WHILE() != nil
-	} else if _, ok := parent.(SwitchBlockStatementGroupContext); ok {
+	if statementContext, ok := parent.(*StatementContext); ok {
+		if statementContext.FOR() != nil || statementContext.WHILE() != nil {
+			return true
+		}
+	} else if _, ok := parent.(*SwitchBlockStatementGroupContext); ok {
 		return true
-	} else if _, ok := parent.(FunctionDeclarationContext); ok {
+	} else if _, ok := parent.(*FunctionDeclarationContext); ok {
 		return false
 	} else if parent == nil {
 		return false
-	} else {
-		return v.checkBreak(parent)
 	}
+	return v.checkBreak(parent)
 }
 
 func (v *SematicValidator) hasReturnStatement(ctx antlr.Tree) bool {
