@@ -63,6 +63,14 @@ func (tree *AnnotatedTree) LookupFunction(scope Scope, idName string) *Function 
 	return function
 }
 
+func (tree *AnnotatedTree) LookupClass(scope Scope, idName string) *Class {
+	rtn := scope.GetClass(idName)
+	if rtn == nil && scope.GetEnclosingScope() != nil {
+		rtn = tree.LookupClass(scope.GetEnclosingScope(), idName)
+	}
+	return rtn
+}
+
 func (tree *AnnotatedTree) LookupFunctionVariable(scope Scope, idName string) *Variable {
 	variable := scope.GetFunctionVariable(idName)
 	if variable == nil && scope.GetEnclosingScope() != nil {

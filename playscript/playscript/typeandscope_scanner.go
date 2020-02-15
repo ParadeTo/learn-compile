@@ -100,12 +100,25 @@ func (scanner *TypeAndScopeScanner) ExitFunctionDeclaration(ctx *FunctionDeclara
 }
 
 // class
-//func (scanner *TypeAndScopeScanner) EnterClassDeclaration(ctx *ClassDeclarationContext) {
-//}
-//
-//func (scanner *TypeAndScopeScanner) ExitClassDeclaration(ctx *ClassDeclarationContext) {
-//	scanner.popScope()
-//}
+func (scanner *TypeAndScopeScanner) EnterClassDeclaration(ctx *ClassDeclarationContext) {
+	// 把类的签名存到符号表中，不能跟已有符号名称冲突
+	idName := ctx.IDENTIFIER().GetText()
+
+	currentScope := scanner.currentScope()
+
+	if scanner.at.LookupClass(currentScope, idName) != nil {
+		scanner.at.LogError("duplicate class name:"+idName, ctx) // 只是报警，但仍然继续解析
+	}
+
+	theClass := NewClass(idName, ctx)
+	scanner.at.types = append(scanner.at.types, theClass)
+	currentScope.AddSymbol(theClass)
+	scanner.pushScope(theClass, ctx)
+}
+
+func (scanner *TypeAndScopeScanner) ExitClassDeclaration(ctx *ClassDeclarationContext) {
+	scanner.popScope()
+}
 
 func NewTypeAndScopeScanner(at *AnnotatedTree) *TypeAndScopeScanner {
 	return &TypeAndScopeScanner{at: at}
