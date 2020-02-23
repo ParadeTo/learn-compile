@@ -75,6 +75,22 @@ func (tr *TypeResolver) ExitFormalParameter(ctx *FormalParameterContext) {
 	}
 }
 
+// 设置类的父类
+func (tr *TypeResolver) EnterClassDeclaration(ctx *ClassDeclarationContext) {
+	theClass := tr.at.node2Scope[ctx]
+	if ctx.EXTENDS() != nil {
+		parentClassName := ctx.TypeType().GetText()
+		_type := tr.at.LookupType(parentClassName)
+		if _type != nil {
+			if class, ok := _type.(*Class); ok {
+				theClass.(*Class).SetParentClass(class)
+			}
+		} else {
+			tr.at.LogError("unknown class: "+parentClassName, ctx)
+		}
+	}
+}
+
 // 函数的返回类型
 func (tr *TypeResolver) ExitTypeTypeOrVoid(ctx *TypeTypeOrVoidContext) {
 	if ctx.VOID() != nil {
@@ -101,13 +117,15 @@ func (tr *TypeResolver) ExitTypeType(ctx *TypeTypeContext) {
 	tr.at.typeOfNode[ctx] = _type
 }
 
-//func (tr *TypeResolver) EnterClassOrInterfaceType(ctx *ClassOrInterfaceTypeContext) {
-//	if ctx.AllIDENTIFIER() != nil {
-//		// class 的闭包 scope
-//		scope := tr.at.EnclosingScopeOfNode(ctx)
-//		idName := ctx.GetText()
-//	}
-//}
+func (tr *TypeResolver) EnterClassOrInterfaceType(ctx *ClassOrInterfaceTypeContext) {
+	if ctx.AllIDENTIFIER() != nil {
+		// class 的闭包 scope
+		scope := tr.at.EnclosingScopeOfNode(ctx)
+		idName := ctx.GetText()
+		theClass := tr.at.LookupClass(scope, idName)
+		tr.at.typeOfNode[ctx] = theClass
+	}
+}
 
 // 比如 function int(string, int, int) foo() {}
 // functionType: function int(string, int, int)

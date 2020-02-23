@@ -7,6 +7,7 @@ type Scope interface {
 	GetSymbols() []Symbol
 	GetVariable(name string) *Variable
 	GetClass(name string) *Class
+	//SetParentClass(class *Class)
 	// TODO，支持函数重载，需要传入
 	//GetFunction(name string, paramTypes []Type) *Function
 	GetFunction(name string) *Function

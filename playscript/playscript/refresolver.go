@@ -16,8 +16,9 @@ import (
  */
 type RefResolver struct {
 	*BasePlayScriptListener
-	at *AnnotatedTree
-	// TODO
+	at                   *AnnotatedTree
+	thisConstructorList  []*FunctionCallContext
+	superConstructorList []*FunctionCallContext
 }
 
 func (this *RefResolver) ExitPrimary(ctx *PrimaryContext) {
@@ -46,13 +47,38 @@ func (this *RefResolver) ExitPrimary(ctx *PrimaryContext) {
 		_type = this.at.typeOfNode[ctx.Literal()]
 	} else if ctx.Expression() != nil { // 括号的表达式
 		_type = this.at.typeOfNode[ctx.Expression()]
+	} else if ctx.THIS() != nil { // this 关键字
+		//找到this的类
+		theClass := this.at.EnclosingClassOfNode(ctx)
+		if theClass != nil {
+			variable := theClass.GetThis()
+			this.at.symbolOfNode[ctx] = variable
+			_type = theClass
+		} else {
+			this.at.LogError("keyword \"this\" can only be used inside a class", ctx)
+		}
+	} else if ctx.SUPER() != nil { // super 关键字
+		//找到super的类
+		theClass := this.at.EnclosingClassOfNode(ctx)
+		if theClass != nil {
+			variable := theClass.GetSuper()
+			this.at.symbolOfNode[ctx] = variable
+			_type = theClass
+		} else {
+			this.at.LogError("keyword \"super\" can only be used inside a class", ctx)
+		}
 	}
 	this.at.typeOfNode[ctx] = _type
 }
 
 func (this *RefResolver) ExitFunctionCall(ctx *FunctionCallContext) {
-	// TODO this
-	// TODO super
+	if ctx.THIS() != nil {
+		this.thisConstructorList = append(this.thisConstructorList, ctx)
+		return
+	} else if ctx.SUPER() != nil {
+		this.superConstructorList = append(this.superConstructorList, ctx)
+		return
+	}
 
 	// TODO 临时代码，支持println
 	if ctx.IDENTIFIER().GetText() == "println" {
@@ -62,7 +88,36 @@ func (this *RefResolver) ExitFunctionCall(ctx *FunctionCallContext) {
 	idName := ctx.IDENTIFIER().GetText()
 	found := false
 
-	// TODO 看看是不是点符号表达式调用的，调用的是类的方法
+	// 看看是不是点符号表达式调用的，调用的是类的方法
+	if expCtx, ok := ctx.GetParent().(*ExpressionContext); ok {
+		if expCtx.GetBop() != nil && expCtx.GetBop().GetTokenType() == PlayScriptParserDOT {
+			symbol := this.at.symbolOfNode[expCtx.Expression(0)]
+			if variable, ok := symbol.(*Variable); ok {
+				if class, ok := variable._type.(*Class); ok {
+					//查找名称匹配的函数
+					function := class.GetFunction(idName)
+					if function != nil {
+						found = true
+						this.at.symbolOfNode[ctx] = function
+						this.at.typeOfNode[ctx] = function.GetReturnType()
+					} else {
+						funcVar := class.GetFunctionVariable(idName)
+						if funcVar != nil {
+							found = true
+							this.at.symbolOfNode[ctx] = funcVar
+							this.at.typeOfNode[ctx] = funcVar._type.(FunctionType).GetReturnType()
+						} else {
+							this.at.LogError("unable to find method "+idName+" in Class "+class.name, expCtx)
+						}
+					}
+				} else {
+					this.at.LogError("unable to resolve a class", ctx)
+				}
+			} else {
+				this.at.LogError("unable to resolve a variable", ctx)
+			}
+		}
+	}
 
 	scope := this.at.EnclosingScopeOfNode(ctx)
 	// 从当前 scope 逐级查找函数(或方法)
@@ -75,29 +130,82 @@ func (this *RefResolver) ExitFunctionCall(ctx *FunctionCallContext) {
 		}
 	}
 
-	if !found {
-		// TODO 看看是不是类的构造函数，用相同的名称查找一个class
+	paramTypes := this.getParamTypes(ctx)
 
-		// 看看是不是一个函数型的变量
-		variable := this.at.LookupFunctionVariable(scope, idName)
-		if variable != nil {
-			if functionType, ok := variable._type.(FunctionType); ok {
+	if !found {
+		// 看看是不是类的构造函数，用相同的名称查找一个class
+		class := this.at.LookupClass(scope, idName)
+		if class != nil {
+			function := class.FindConstructor(paramTypes)
+			if function != nil {
 				found = true
-				this.at.symbolOfNode[ctx] = variable
-				this.at.typeOfNode[ctx] = functionType
+				this.at.symbolOfNode[ctx] = function
+			} else if ctx.ExpressionList() == nil { // 缺省构造方法
+				found = true
+				this.at.symbolOfNode[ctx] = class.getDefaultConstructor()
+			} else {
+				this.at.LogError("unknown class constructor: "+ctx.GetText(), ctx)
+			}
+			this.at.typeOfNode[ctx] = class // 构造函数的返回值是类
+		} else {
+			// 看看是不是一个函数型的变量
+			variable := this.at.LookupFunctionVariable(scope, idName)
+			if variable != nil {
+				if functionType, ok := variable._type.(FunctionType); ok {
+					found = true
+					this.at.symbolOfNode[ctx] = variable
+					this.at.typeOfNode[ctx] = functionType
+				}
+			} else {
+				this.at.LogError("unknown function or function variable: "+ctx.GetText(), ctx)
 			}
 		}
 	}
 }
 
+// 获得函数的参数列表
+func (this *RefResolver) getParamTypes(ctx *FunctionCallContext) []Type {
+	var paramTypes []Type
+	if ctx.ExpressionList() != nil {
+		for _, expCtx := range ctx.ExpressionList().(*ExpressionListContext).AllExpression() {
+			_type := this.at.typeOfNode[expCtx]
+			paramTypes = append(paramTypes, _type)
+		}
+	}
+	return paramTypes
+}
+
+// 消解处理点符号表达式的层层引用
 func (this *RefResolver) ExitExpression(ctx *ExpressionContext) {
 	var _type Type
 
-	// TODO class
 	if ctx.GetBop() != nil && ctx.GetBop().GetTokenType() == PlayScriptParserDOT {
 		// 这是个左递归，要不断的把左边的节点的计算结果存到node2Symbol，所以要在exitExpression里操作
-		// symbol := this.at.symbolOfNode[ctx.Expression(0)]
+		symbol := this.at.symbolOfNode[ctx.Expression(0)]
+		if variable, ok := symbol.(*Variable); ok {
+			if class, ok := variable._type.(*Class); ok {
+				// 引用类的属性
+				if ctx.IDENTIFIER() != nil {
+					idName := ctx.IDENTIFIER().GetText()
+					variable := this.at.LookupVariable(class, idName)
+					if variable != nil {
+						this.at.symbolOfNode[ctx] = variable
+						_type = variable._type
+					} else {
+						this.at.LogError("unable to find field "+idName+" in Class "+class.name, ctx)
+					}
+				} else if ctx.FunctionCall() != nil { // 引用类的方法
+					_type = this.at.typeOfNode[ctx.FunctionCall()]
+				}
+			} else {
+				this.at.LogError("symbol is not a qualified object："+symbol.GetName(), ctx)
+			}
+		} else {
+			this.at.LogError("symbol is not a qualified object："+symbol.GetName(), ctx)
+		}
 	} else if ctx.Primary() != nil {
+		//变量引用冒泡： 如果下级是一个变量，往上冒泡传递，以便在点符号表达式中使用
+		//也包括This和Super的冒泡
 		symbol := this.at.symbolOfNode[ctx.Primary()]
 		//fmt.Println(ctx.GetStart().GetLine())
 		//fmt.Println(ctx.GetText())
@@ -186,8 +294,120 @@ func (this *RefResolver) ExitLiteral(ctx *LiteralContext) {
 }
 
 // TODO 在结束扫描之前，把this()和super()构造函数消解掉
-//func (this *RefResolver) ExitProg(ctx *ProgContext) {
-//}
+func (this *RefResolver) ExitProg(ctx *ProgContext) {
+	for _, fcc := range this.thisConstructorList {
+		this.resolveThisConstructorCall(fcc)
+	}
+	for _, fcc := range this.superConstructorList {
+		this.resolveThisConstructorCall(fcc)
+	}
+}
+
+func (this *RefResolver) firstStatmentInFunction(fdx *FunctionDeclarationContext, ctx *FunctionCallContext) bool {
+	ctxFuncBody := fdx.FunctionBody().(*FunctionBodyContext)
+	ctxBlock := ctxFuncBody.Block().(*BlockContext)
+	ctxBlockStatements := ctxBlock.BlockStatements().(*BlockStatementsContext)
+	ctxBlockStatement := ctxBlockStatements.BlockStatement(0).(*BlockStatementContext)
+	if ctxBlockStatement.Statement() != nil {
+		if ctxStatement, ok := ctxBlockStatement.Statement().(*StatementContext); ok {
+			if ctxStatement.Expression() != nil {
+				if ctxExp, ok := ctxStatement.Expression().(*ExpressionContext); ok {
+					if ctxExp.FunctionCall() == ctx {
+						return true
+					}
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (this *RefResolver) resolveThisConstructorCall(ctx *FunctionCallContext) {
+	class := this.at.EnclosingClassOfNode(ctx)
+	if class != nil {
+		function := this.at.EnclosingFunctionOfNode(ctx)
+		if function != nil && function.IsConstructor() {
+			//检查是不是构造函数中的第一句
+			fdx, ok := function.ctx.(*FunctionDeclarationContext)
+			if !ok {
+				return
+			}
+			if !this.firstStatmentInFunction(fdx, ctx) {
+				this.at.LogError("this() must be first statement in a constructor", ctx)
+				return
+			}
+
+			paramTypes := this.getParamTypes(ctx)
+			referred := class.FindConstructor(paramTypes)
+			if referred != nil {
+				this.at.symbolOfNode[ctx] = referred
+				this.at.typeOfNode[ctx] = class
+				this.at.thisConstructorRef[ctx] = referred
+			} else if len(paramTypes) == 0 {
+				defaultConstructor := class.getDefaultConstructor()
+				this.at.symbolOfNode[ctx] = defaultConstructor
+				this.at.typeOfNode[ctx] = class
+				this.at.thisConstructorRef[ctx] = (*Function)(defaultConstructor)
+			} else {
+				this.at.LogError("can not find a constructor matches this()", ctx)
+			}
+		} else {
+			this.at.LogError("this() should only be called inside a class constructor", ctx)
+		}
+	} else {
+		this.at.LogError("this() should only be called inside a class constructor", ctx)
+	}
+}
+
+/**
+ * 消解Super()构造函数
+ * TODO 对于调用super()是有要求的，比如：
+ * (1)必须出现在构造函数的第一行，
+ * (2)this()和super不能同时出现，等等。
+ * @param ctx
+ */
+func (this *RefResolver) resolveSuperConstructorCall(ctx *FunctionCallContext) {
+	class := this.at.EnclosingClassOfNode(ctx)
+	if class != nil {
+		function := this.at.EnclosingFunctionOfNode(ctx)
+		if function != nil && function.IsConstructor() {
+			parentClass := class.GetParentClass()
+			if parentClass != nil {
+				//检查是不是构造函数中的第一句
+				fdx, ok := function.ctx.(*FunctionDeclarationContext)
+				if !ok {
+					return
+				}
+				if !this.firstStatmentInFunction(fdx, ctx) {
+					this.at.LogError("super() must be first statement in a constructor", ctx)
+					return
+				}
+
+				paramTypes := this.getParamTypes(ctx)
+				referred := class.FindConstructor(paramTypes)
+				if referred != nil {
+					this.at.symbolOfNode[ctx] = referred
+					this.at.typeOfNode[ctx] = class
+					this.at.thisConstructorRef[ctx] = referred
+				} else if len(paramTypes) == 0 {
+					defaultConstructor := class.getDefaultConstructor()
+					this.at.symbolOfNode[ctx] = defaultConstructor
+					this.at.typeOfNode[ctx] = class
+					this.at.thisConstructorRef[ctx] = (*Function)(defaultConstructor)
+				} else {
+					this.at.LogError("can not find a constructor matches super()", ctx)
+				}
+			} else { //父类是最顶层的基类
+				// todo
+			}
+
+		} else {
+			this.at.LogError("super() should only be called inside a class constructor", ctx)
+		}
+	} else {
+		this.at.LogError("super() should only be called inside a class constructor", ctx)
+	}
+}
 
 func NewRefResolver(at *AnnotatedTree) *RefResolver {
 	return &RefResolver{at: at}

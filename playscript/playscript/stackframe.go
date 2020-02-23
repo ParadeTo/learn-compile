@@ -46,3 +46,10 @@ func NewFrameForFunction(object *FunctionObject) *StackFrame {
 	stackFrame.object = object
 	return stackFrame
 }
+
+func NewFrameForClass(object *ClassObject) *StackFrame {
+	stackFrame := &StackFrame{}
+	stackFrame.scope = object._type
+	stackFrame.object = object
+	return stackFrame
+}

@@ -71,6 +71,13 @@ func (v *SematicValidator) hasReturnStatement(ctx antlr.Tree) bool {
 	return rtn
 }
 
+func (v *SematicValidator) ExitClassDeclaration(ctx *ClassDeclarationContext) {
+	// 类的声明不能在函数里
+	if v.at.EnclosingFunctionOfNode(ctx) != nil {
+		v.at.LogError("can not declare class inside function", ctx)
+	}
+}
+
 func (v *SematicValidator) ExitFunctionDeclaration(ctx *FunctionDeclarationContext) {
 	//02-01 函数定义了返回值，就一定要有相应的return语句
 	//TODO 更完善的是要进行控制流计算，不是仅仅有一个return语句就行了

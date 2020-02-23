@@ -66,13 +66,18 @@ func (f *Function) ToString() string {
 	return "Function: " + f.name
 }
 
-// 该函数是不是类的方法 TODO
+// 该函数是不是类的方法
 func (f *Function) IsMethod() bool {
-	return false
+	_, ok := f.enclosingScope.(*Class)
+	return ok
 }
 
-// 该函数是不是类的构造函数 TODO
+// 该函数是不是类的构造函数
+// 函数名跟类名一致
 func (f *Function) IsConstructor() bool {
+	if _, ok := f.enclosingScope.(*Class); ok {
+		return f.enclosingScope.GetName() == f.name
+	}
 	return false
 }
 

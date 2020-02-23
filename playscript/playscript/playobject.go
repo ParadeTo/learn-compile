@@ -11,6 +11,12 @@ type BasePlayObject struct {
 	fields map[*Variable]interface{}
 }
 
+func (this *BasePlayObject) PutAllFields(fields map[*Variable]interface{}) {
+	for v, fieldValue := range fields {
+		this.SetValue(v, fieldValue)
+	}
+}
+
 func (this *BasePlayObject) SetValue(variable *Variable, value interface{}) {
 	this.fields[variable] = value
 }

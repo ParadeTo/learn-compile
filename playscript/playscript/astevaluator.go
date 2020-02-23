@@ -292,6 +292,24 @@ func (this *ASTEvaluator) getClosureValuesForFunction(function *Function, valueC
 	}
 }
 
+/**
+ * 为从函数中返回的对象设置闭包值。因为多个函数型属性可能共享值，所以要打包到ClassObject中，而不是functionObject中
+ * @param classObject
+ */
+func (this *ASTEvaluator) getClosureValuesForClass(classObject *ClassObject) {
+	//先放在一个临时对象里，避免对classObject即读又写
+	tempObject := NewBasePlayObject()
+	for v, fieldValue := range classObject.GetFields() {
+		if _, ok := v._type.(FunctionType); ok && fieldValue != nil {
+			if functionObject, ok := fieldValue.(FunctionObject); ok {
+				this.getClosureValuesForFunction(functionObject.function, tempObject)
+			}
+		}
+	}
+
+	classObject.PutAllFields(tempObject.fields)
+}
+
 //---- visit ----
 func (this *ASTEvaluator) VisitBlock(ctx *BlockContext) interface{} {
 	scope := this.at.node2Scope[ctx]
@@ -433,11 +451,12 @@ func (this *ASTEvaluator) VisitStatement(ctx *StatementContext) interface{} {
 			if lvalue, ok := rtn.(LValue); ok {
 				rtn = lvalue.GetValue()
 			}
+			// 返回值是函数或者类的实例时
 			// 把闭包涉及的环境变量都打包带走
 			if functionObject, ok := rtn.(*FunctionObject); ok {
 				this.getClosureValuesForFunction(functionObject.function, functionObject)
-			} else if false { // TODO class
-
+			} else if classObject, ok := rtn.(*ClassObject); ok { // TODO class
+				this.getClosureValuesForClass(classObject)
 			}
 		}
 
@@ -588,6 +607,31 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 	} else if ctx.GetBop() != nil && ctx.GetBop().GetTokenType() == PlayScriptParserDOT {
 		// 此语法是左递归的，算法体现这一点
 		// TODO class
+		leftObject := this.VisitExpression(ctx.Expression(0).(*ExpressionContext))
+		if lvalue, ok := leftObject.(LValue); ok {
+			value := lvalue.GetValue()
+			if valueContainer, ok := value.(*ClassObject); ok {
+				leftVar := this.at.symbolOfNode[ctx.Expression(0)]
+				// 获得field或调用方法
+				if ctx.IDENTIFIER() != nil {
+					variable := this.at.symbolOfNode[ctx].(*Variable)
+					_, ok1 := leftVar.(*This)
+					_, ok2 := leftVar.(*Super)
+					if !(ok1 || ok2) {
+						//类的成员可能需要重载
+						variable = this.at.LookupVariable(valueContainer._type, variable.GetName())
+					}
+					lValue := NewMyLValue(valueContainer, variable)
+					rtn = lValue
+				} else if ctx.FunctionCall() != nil {
+					fmt.Println("\n>>MethodCall: " + ctx.GetText())
+					_, ok := leftVar.(*Super)
+					rtn = this.methodCall(valueContainer, ctx.FunctionCall().(*FunctionCallContext), ok)
+				}
+			}
+		} else {
+			fmt.Println("Expecting an Object Reference")
+		}
 	} else if ctx.Primary() != nil {
 		if primaryCtx, ok := ctx.Primary().(*PrimaryContext); ok {
 			rtn = this.VisitPrimary(primaryCtx)
@@ -660,23 +704,145 @@ func (this *ASTEvaluator) VisitExpression(ctx *ExpressionContext) interface{} {
 	return rtn
 }
 
+func (this *ASTEvaluator) createAndInitClassObject(class *Class) *ClassObject {
+	obj := NewClassObject()
+	obj._type = class
+
+	var ancestorChain []*Class
+
+	// 从上到下执行缺省的初始化方法
+	ancestorChain = append(ancestorChain, class)
+	for {
+		if class.GetParentClass() == nil {
+			break
+		}
+		ancestorChain = append(ancestorChain, class.GetParentClass())
+		class = class.GetParentClass()
+	}
+
+	// 执行缺省的初始化方法
+	frame := NewFrameForClass(obj)
+	this.pushStack(frame)
+	for {
+		if len(ancestorChain) <= 0 {
+			break
+		}
+		c := ancestorChain[len(ancestorChain)-1]
+		ancestorChain = ancestorChain[:len(ancestorChain)-1]
+		this.defaultObjectInit(c, obj)
+	}
+	this.popStack()
+	return obj
+}
+
+// 类的缺省初始化方法
+func (this *ASTEvaluator) defaultObjectInit(class *Class, obj *ClassObject) {
+	for _, symbol := range class.symbols {
+		// 把变量加到obj里，缺省先都初始化成null，不允许有未初始化的
+		if variable, ok := symbol.(*Variable); ok {
+			obj.fields[variable] = nil
+		}
+	}
+
+	ctx := class.ctx.(*ClassDeclarationContext).ClassBody()
+	this.VisitClassBody(ctx.(*ClassBodyContext))
+	//TODO 其实这里还没干完活。还需要调用显式声明的构造方法
+
+}
+
+func (this *ASTEvaluator) thisConstructor(ctx *FunctionCallContext) {
+	symbol := this.at.symbolOfNode[ctx]
+	if _, ok := symbol.(*DefaultConstructor); ok { // 缺省构造函数
+		return
+	} else if function, ok := symbol.(*Function); ok {
+		functionObject := NewFunctionObject(function)
+		paramValues := this.calcParamValues(ctx)
+		this.functionCall(functionObject, paramValues)
+	}
+}
+
+/**
+ * 对象方法调用。
+ * 要先计算完参数的值，然后再添加对象的StackFrame，然后再调用方法。
+ * @param classObject  实际调用时的对象。通过这个对象可以获得真实的类，支持多态。
+ * @param ctx
+ * @return
+ */
+func (this *ASTEvaluator) methodCall(classObject *ClassObject, ctx *FunctionCallContext, isSuper bool) interface{} {
+	var rtn interface{}
+
+	//查找函数，并根据需要创建FunctionObject
+	//如果查找到的是类的属性，FunctionType型的，需要把在对象的栈桢里查。
+	classFrame := NewFrameForClass(classObject)
+	this.pushStack(classFrame)
+
+	functionObject := this.getFunctionObject(ctx)
+
+	this.popStack()
+
+	function := functionObject.function
+
+	//对普通的类方法，需要在运行时动态绑定
+	class := classObject._type //这是从对象获得的类型，是真实类型。可能是变量声明时的类型的子类
+	if !function.IsConstructor() && !isSuper {
+		//从当前类逐级向上查找，找到正确的方法定义
+		overrided := class.GetFunction(function.name)
+		//原来这个function，可能指向一个父类的实现。现在从子类中可能找到重载后的方法，这个时候要绑定到子类的方法上
+		if overrided != nil && overrided != function {
+			function = overrided
+			functionObject.SetFunction(function)
+		}
+	}
+
+	paramValues := this.calcParamValues(ctx)
+
+	//对象的frame要等到函数参数都计算完了才能添加。
+	//StackFrame classFrame = new StackFrame(classObject);
+	this.pushStack(classFrame)
+
+	// 执行函数
+	rtn = this.functionCall(functionObject, paramValues)
+
+	this.popStack()
+
+	return rtn
+}
+
 func (this *ASTEvaluator) VisitFunctionCall(ctx *FunctionCallContext) interface{} {
-	// TODO 暂时不考虑 this 和 super
+	// this
+	if ctx.THIS() != nil {
+		this.thisConstructor(ctx)
+		return nil //不需要有返回值，因为本身就是在构造方法里调用的。
+	} else if ctx.SUPER() != nil { // super
+		this.thisConstructor(ctx) //似乎跟this完全一样。因为方法的绑定是解析准确了的。
+		return nil
+	}
 
 	var rtn interface{}
 	//这是调用时的名称，不一定是真正的函数名，还可能是函数尅性的变量名
 	functionName := ctx.IDENTIFIER().GetText()
 
-	if functionName == "println" {
+	//如果调用的是类的缺省构造函数，则直接创建对象并返回
+	symbol := this.at.symbolOfNode[ctx]
+	if defaultConstructor, ok := symbol.(*DefaultConstructor); ok {
+		//类的缺省构造函数。没有一个具体函数跟它关联，只是指向了一个类。
+		return this.createAndInitClassObject(defaultConstructor.Class())
+	} else if functionName == "println" {
 		this.println(ctx)
 		return rtn
 	}
 
 	//在上下文中查找出函数，并根据需要创建FunctionObject
 	functionObject := this.getFunctionObject(ctx)
-	//function := functionObject.function
+	function := functionObject.function
 
-	// todo 如果是对象的构造方法，则按照对象方法调用去执行，并返回所创建出的对象。
+	// 如果是对象的构造方法，则按照对象方法调用去执行，并返回所创建出的对象。
+	if function.IsConstructor() {
+		class := function.enclosingScope
+		newObject := this.createAndInitClassObject(class.(*Class)) // 先做缺省的初始化
+		this.methodCall(newObject, ctx, false)
+		return newObject
+	}
 
 	// 计算参数值
 	paramValues := this.calcParamValues(ctx)

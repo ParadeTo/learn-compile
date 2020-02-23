@@ -4,6 +4,7 @@ import (
 	"strconv"
 )
 
+// 函数类型
 type FunctionType interface {
 	Type
 	GetReturnType() Type

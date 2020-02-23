@@ -23,6 +23,10 @@ type AnnotatedTree struct {
 	symbolOfNode map[Tree]Symbol
 	// AST节点对应的Type
 	typeOfNode map[Tree]Type
+	// 在构造函数里引用的 this()
+	thisConstructorRef map[Tree]*Function // key 是否要用 *Function
+	// 在构造函数里引用的 super()
+	superConstructorRef map[Tree]*Function // key 是否要用 *Function
 	// 命名空间
 	nameSpace *NameSpace
 	// 语义分析过程中生成的信息，包括普通信息、警告和错误
@@ -63,10 +67,23 @@ func (tree *AnnotatedTree) LookupFunction(scope Scope, idName string) *Function 
 	return function
 }
 
+// 通过名称查找Class。逐级Scope查找
 func (tree *AnnotatedTree) LookupClass(scope Scope, idName string) *Class {
 	rtn := scope.GetClass(idName)
 	if rtn == nil && scope.GetEnclosingScope() != nil {
 		rtn = tree.LookupClass(scope.GetEnclosingScope(), idName)
+	}
+	return rtn
+}
+
+// TODO 单纯根据名称并不严密
+func (tree *AnnotatedTree) LookupType(idName string) Type {
+	var rtn Type
+	for _, _type := range tree.types {
+		if _type.GetName() == idName {
+			rtn = _type
+			break
+		}
 	}
 	return rtn
 }
@@ -125,6 +142,22 @@ func (tree *AnnotatedTree) EnclosingFunctionOfNode(ctx Tree) *Function {
 		return nil
 	} else {
 		return tree.EnclosingFunctionOfNode(ctx.GetParent())
+	}
+}
+
+// 包含某节点的类
+func (tree *AnnotatedTree) EnclosingClassOfNode(ctx Tree) *Class {
+	parent := ctx.GetParent()
+	if _, ok := parent.(*parser.ClassDeclarationContext); ok {
+		scope := tree.node2Scope[parent]
+		if class, ok := scope.(*Class); ok {
+			return class
+		}
+		return nil
+	} else if ctx.GetParent() == nil {
+		return nil
+	} else {
+		return tree.EnclosingClassOfNode(ctx.GetParent())
 	}
 }
 

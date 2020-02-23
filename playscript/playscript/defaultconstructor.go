@@ -1,13 +1,11 @@
 package playscript
 
-type DefaultConstructor struct {
-	*Function
-}
+type DefaultConstructor Function
 
 func (constructor *DefaultConstructor) Class() *Class {
 	return constructor.GetEnclosingScope().(*Class)
 }
 
-func NewDefaultConstructor(name string, theClase *Class) *DefaultConstructor {
-	return &DefaultConstructor{Function: NewFunction(name, theClase, nil)}
+func NewDefaultConstructor(name string, class *Class) *DefaultConstructor {
+	return (*DefaultConstructor)(NewFunction(name, class, nil))
 }

@@ -88,7 +88,7 @@ func (c *Class) GetClass(name string) *Class {
 	return rtn
 }
 
-func (c *Class) GetConstructor(paramTypes []Type) *Function {
+func (c *Class) FindConstructor(paramTypes []Type) *Function {
 	return c.BaseScope.GetFunctionByNameAndParams(c.name, paramTypes)
 }
 
@@ -102,6 +102,7 @@ func (c *Class) GetFunction(name string) *Function {
 	return rtn
 }
 
+// 函数类型的成员变量
 func (c *Class) GetFunctionVariable(name string) *Variable {
 	rtn := c.BaseScope.GetFunctionVariable(name)
 	if rtn == nil && c.parentClass != nil {
