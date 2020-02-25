@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	script, _ := ioutil.ReadFile("./playscript/playscript/testdata/loop.play")
+	script, _ := ioutil.ReadFile("./playscript/playscript/testdata/closure.play")
 	compiler := playscript.NewPlayScriptCompiler()
 	at := compiler.Compile(string(script))
 	compiler.Execute(at, false)

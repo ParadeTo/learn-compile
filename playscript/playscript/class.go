@@ -134,7 +134,7 @@ func (c *Class) ContainsSymbol(symbol Symbol) bool {
 }
 
 func NewClass(name string, ctx antlr.Tree) *Class {
-	class := &Class{}
+	class := &Class{BaseScope: NewBaseScope()}
 	class.name = name
 	class.ctx = ctx
 	class.thisRef = NewThis(class, ctx)
