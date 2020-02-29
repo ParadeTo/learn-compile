@@ -1,4 +1,5 @@
-import Lexer from './lexer'
-const lexer = new Lexer()
-const reader = lexer.tokenize("int age = 43;")
-lexer.dump(reader)
+import Parser from './parser'
+
+const parser = new Parser()
+const astRoot = parser.parse('inta age = 45 + 46;')
+parser.dumpAST(astRoot)
