@@ -40,7 +40,7 @@ export default class Parser {
       // 括号括起来的加法表达式
       else if (token.getType() === TokenType.LeftParen) {
         reader.read() // 消耗掉 (
-        const node = this.additive(reader)
+        node = this.additive(reader)
         if (node) {
           token = reader.peek()
           if (token && token.getType() === TokenType.RightParen) {
@@ -57,8 +57,8 @@ export default class Parser {
   }
 
   /**
-   * 加/减法表达式
-   * Additive: multiplicative ( (+ | -) multiplicative )*
+   * 乘/除法表达式
+   * multiplicative: primary ( (+ | -) primary )*
    */
   multiplicative(reader: TokenReader): SimpleASTNode {
     let child1 = this.primary(reader)
