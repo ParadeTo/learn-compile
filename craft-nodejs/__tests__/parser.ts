@@ -1,7 +1,5 @@
-import {TokenType, Token} from '../src/token'
 import Parser from '../src/parser'
 import { ASTNodeType } from '../src/ast'
-
 
 describe('parser', () => {
   test('parse', () => {

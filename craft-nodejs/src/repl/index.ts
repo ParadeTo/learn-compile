@@ -1,3 +1,4 @@
+import readline from 'readline'
 import Parser from "../parser"
 import Executor from "../executor"
 
@@ -9,7 +10,7 @@ export default function run() {
   verbose && process.stdout.write('verbose mode\n')
   process.stdout.write('\n>')
 
-  const rl = require('readline').createInterface({
+  const rl = readline.createInterface({
     input: process.stdin
   })
 
