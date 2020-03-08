@@ -1,5 +1,5 @@
-import { DfaState } from "../dfastate"
-import { Token, TokenType, TokenReader } from "../token"
+import {DfaState} from '../dfastate'
+import {Token, TokenType, TokenReader} from '../token'
 
 class SimpleToken implements Token {
   text: string = ''
@@ -225,10 +225,10 @@ export default class Lexer {
   }
 
   dump(reader: SimpleTokenReader) {
-    console.log("type\ttext")
+    console.log('type\ttext')
     let token
-    while (token = reader.read()) {
-      console.log(token.getType() + "\t" + token.getText())
+    while ((token = reader.read())) {
+      console.log(token.getType() + '\t' + token.getText())
     }
   }
 }

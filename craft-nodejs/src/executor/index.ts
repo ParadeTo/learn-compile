@@ -9,12 +9,16 @@ export default class Executor {
   }
 
   execute(node: ASTNode, indent: string = '\t'): number {
-    let result = 0
+    let result: any = 0
     if (this.verbose) {
       console.log(indent + 'Executing: ' + node.getType())
     }
 
+    // 因为解析 expressionStatement 的时候直接返回的是子节点 additive，所以这里没有 expressionStatement
     switch (node.getType()) {
+      case ASTNodeType.PrintCall:
+        result = void 0
+        console.log(this.execute(node.getChildren()[0], indent + '\t'))
       case ASTNodeType.Programm:
         node.getChildren().forEach(child => {
           result = this.execute(child, indent + '\t')

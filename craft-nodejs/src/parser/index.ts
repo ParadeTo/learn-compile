@@ -7,7 +7,7 @@ import Lexer from '../lexer'
  * 能够解析简单的表达式(四则运算)、变量声明和初始化语句、赋值语句。
  * 它支持的语法规则为：
  *
- * programm -> intDeclare | expressionStatement | assignmentStatement
+ * programm -> intDeclare | expressionStatement | assignmentStatement | print(additive);
  * intDeclare -> 'int' Id ( = additive)? ';'
  * expressionStatement -> additive ';'
  * assignmentStatement -> Id = expressionStatement
@@ -137,45 +137,45 @@ export default class Parser {
    * int b = 2*3;
    */
   intDeclare(reader: TokenReader): SimpleASTNode {
-      let node: SimpleASTNode
-      let token = reader.peek()
-      if (token && token.getType() === TokenType.Int) {
-        // 消耗掉 int，我们已经知道是整型变量声明语句了，int 这个 token 已经不需要了
-        reader.read()
-        // int 后面必须接标识符
-        if (reader.peek().getType() === TokenType.Identifier) {
-          token = reader.read()
-          //创建当前节点，并把变量名记到AST节点的文本值中，这里新建一个变量子节点也是可以的
-          node = new SimpleASTNode(ASTNodeType.IntDeclaration, token.getText())
-          token = reader.peek()
-          // 声明语句后还有赋值操作
-          if (token && token.getType() === TokenType.Assignment) {
-            reader.read() // 消耗掉 =
-            const child = this.additive(reader)
-            if (!child) {
-              throw new Error(
-                'invalid variable initialization, expecting an expression'
-              )
-            }
-            node.addChild(child)
+    let node: SimpleASTNode
+    let token = reader.peek()
+    if (token && token.getType() === TokenType.Int) {
+      // 消耗掉 int，我们已经知道是整型变量声明语句了，int 这个 token 已经不需要了
+      reader.read()
+      // int 后面必须接标识符
+      if (reader.peek().getType() === TokenType.Identifier) {
+        token = reader.read()
+        //创建当前节点，并把变量名记到AST节点的文本值中，这里新建一个变量子节点也是可以的
+        node = new SimpleASTNode(ASTNodeType.IntDeclaration, token.getText())
+        token = reader.peek()
+        // 声明语句后还有赋值操作
+        if (token && token.getType() === TokenType.Assignment) {
+          reader.read() // 消耗掉 =
+          const child = this.additive(reader)
+          if (!child) {
+            throw new Error(
+              'invalid variable initialization, expecting an expression'
+            )
           }
-          // 这里不需要 else 因为声明语句后可以没有赋值操作
+          node.addChild(child)
         }
-        // 否则报错
-        else {
-          throw new Error('variable name expected')
-        }
+        // 这里不需要 else 因为声明语句后可以没有赋值操作
+      }
+      // 否则报错
+      else {
+        throw new Error('variable name expected')
+      }
 
-        if (node) {
-          token = reader.peek()
-          if (token && token.getType() === TokenType.SemiColon) {
-            reader.read()
-          } else {
-            throw new Error('invalid statement, expecting semicolon')
-          }
+      if (node) {
+        token = reader.peek()
+        if (token && token.getType() === TokenType.SemiColon) {
+          reader.read()
+        } else {
+          throw new Error('invalid statement, expecting semicolon')
         }
       }
-      return node!
+    }
+    return node!
   }
 
   // 表达式
@@ -187,7 +187,8 @@ export default class Parser {
       token = reader.peek()
       if (token && token.getType() === TokenType.SemiColon) {
         reader.read()
-      } else { // 解析失败，回溯
+      } else {
+        // 解析失败，回溯
         node = null!
         reader.setPosition(pos)
       }
@@ -207,8 +208,11 @@ export default class Parser {
       if (token && token.getType() === TokenType.Assignment) {
         reader.read()
         const child = this.additive(reader)
-        if (!child) {// 等号右面没有一个合法的表达式
-          throw new Error('invalid assignment statement, expecting an expression')
+        if (!child) {
+          // 等号右面没有一个合法的表达式
+          throw new Error(
+            'invalid assignment statement, expecting an expression'
+          )
         } else {
           node.addChild(child)
           token = reader.peek() // 看是不是分号
@@ -226,6 +230,41 @@ export default class Parser {
     return node!
   }
 
+  printCall(reader: TokenReader): SimpleASTNode {
+    let node: SimpleASTNode
+    let token = reader.peek()
+    if (
+      token.getType() === TokenType.Identifier &&
+      token.getText() === 'print'
+    ) {
+      reader.read()
+      token = reader.peek()
+      if (token.getType() !== TokenType.LeftParen) {
+        throw new Error('expecting left parenthesis after print')
+      }
+
+      node = new SimpleASTNode(ASTNodeType.PrintCall, 'print')
+      reader.read()
+      const child = this.additive(reader)
+      if (child) {
+        node.addChild(child)
+      }
+
+      token = reader.peek()
+      if (!(token && token.getType() == TokenType.RightParen)) {
+        throw new Error('expecting left parenthesis after print')
+      }
+      reader.read() // 消耗掉这个括号
+
+      token = reader.peek()
+      if (!(token && token.getType() == TokenType.SemiColon)) {
+        throw new Error('invalid statement, expecting semicolon')
+      }
+      reader.read() // 消耗掉分号
+    }
+    return node!
+  }
+
   // 入口
   prog(reader: TokenReader): SimpleASTNode {
     // 根节点
@@ -239,6 +278,9 @@ export default class Parser {
       }
       if (!child) {
         child = this.assignmentStatement(reader)
+      }
+      if (!child) {
+        child = this.printCall(reader)
       }
 
       if (child) {
@@ -269,10 +311,10 @@ export default class Parser {
   }
 
   dumpAST(node: ASTNode, indent: string = '\t') {
-    console.log(indent + node.getType() + " " + node.getText())
+    console.log(indent + node.getType() + ' ' + node.getText())
     node.getChildren().forEach(child => {
-      this.dumpAST(child, indent+'\t')
-    });
+      this.dumpAST(child, indent + '\t')
+    })
   }
 }
 

@@ -2,8 +2,7 @@ import readline from 'readline'
 import Parser from "../parser"
 import Executor from "../executor"
 
-export default function run() {
-  const verbose = true // process.argv[1] === '-v'
+export default function run(verbose = false) {
   const parser = new Parser()
   const executor = new Executor(verbose)
 
